@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: v0.1.0_0001
+      author: mixturka
+      changes:
+        - tagDatabase:
+            tag: v0.1.0_0001
+        - sqlFile:
+            endDelimiter: $$
+            path: ../sql/v0.1.0/0001_Create_User_Accounts.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: ../sql/v0.1.0/rollbacks/0001.sql
+            relativeToChangelogFile: true

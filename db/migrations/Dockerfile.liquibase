@@ -1,0 +1,14 @@
+FROM liquibase/liquibase:4.27
+
+USER root
+RUN mkdir -p /liquibase/changelog/{changelogs,scripts,sql} && \
+    chown -R liquibase:liquibase /liquibase/changelog
+
+COPY --chown=liquibase:liquibase changelogs/ /liquibase/changelog/changelogs/
+COPY --chown=liquibase:liquibase sql/ /liquibase/changelog/sql/
+COPY --chown=liquibase:liquibase scripts/migrate.sh /liquibase/changelog/scripts/
+
+RUN chmod +x /liquibase/changelog/scripts/migrate.sh
+
+USER liquibase
+WORKDIR /liquibase/changelog

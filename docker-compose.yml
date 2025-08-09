@@ -1,0 +1,87 @@
+services:
+  nats:
+    image: nats:latest
+    container_name: nats
+    command: ["-js"]
+    ports:
+      - "4222:4222"
+    networks:
+      - users-network
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    networks:
+      - users-network
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - users-network
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  postgres-db:
+    image: postgres:17
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - .pgdata:/var/lib/postgresql/data
+    networks:
+      - migrations
+      - backend
+
+  liquibase-migrate:
+    build:
+      context: ./migrations
+      dockerfile: Dockerfile.liquibase
+    container_name: db-migrations
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MIGRATION_VERSION: ${MIGRATION_VERSION}
+      DB_HOST: postgres-db
+      DB_PORT: 5432
+      DB_DRIVER: postgresql
+    command: 
+      - "/liquibase/changelog/scripts/migrate.sh"
+    networks:
+      - migrations
+
+volumes:
+  .pgdata:
+
+networks:
+  migrations:
+    driver: bridge
+  backend:
+    external: true
+    name: shared-backend
+  users-network:
+    name: users-network
+    driver: bridge
