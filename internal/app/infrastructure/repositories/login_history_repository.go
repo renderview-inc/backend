@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	"github.com/renderview-inc/backend/pkg/postgres"
+	"github.com/renderview-inc/backend/pkg/connections"
 )
 
 type LoginHistoryRepository struct {
@@ -58,7 +58,7 @@ func (lhr *LoginHistoryRepository) ReadById(ctx context.Context, id uuid.UUID) (
 	return &li, nil
 }
 
-func (lhr *LoginHistoryRepository) Update(ctx context.Context, loginInfo entities.LoginInfo) error {
+func (lhr *LoginHistoryRepository) Update(ctx context.Context, tx pgx.Tx, loginInfo entities.LoginInfo) error {
 	sql, args, err :=
 		postgres.Psql.Update("user_login_histories").
 			Set("user_id", loginInfo.UserID()).
@@ -73,7 +73,7 @@ func (lhr *LoginHistoryRepository) Update(ctx context.Context, loginInfo entitie
 		return err
 	}
 
-	_, err = lhr.pool.Exec(ctx, sql, args...)
+	_, err = tx.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

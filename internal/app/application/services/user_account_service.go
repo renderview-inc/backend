@@ -37,7 +37,8 @@ type UserAccountService struct {
 
 func NewUserAccountService(accountRepository UserAccountRepository, passwordHasher PasswordHasher) UserAccountService {
 	return UserAccountService{
-		accountRepository, passwordHasher,
+		accountRepository: accountRepository,
+		passwordHasher:    passwordHasher,
 	}
 }
 

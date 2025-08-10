@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	"github.com/renderview-inc/backend/pkg/postgres"
+	"github.com/renderview-inc/backend/pkg/connections"
 )
 
 type UserAccountRepository struct {
