@@ -24,7 +24,7 @@ var (
 type LoginHistoryRepository interface {
 	Create(ctx context.Context, tx pgx.Tx, loginInfo entities.LoginInfo) error
 	ReadById(ctx context.Context, id uuid.UUID) (*entities.LoginInfo, error)
-	Update(ctx context.Context, tx pgx.Tx, loginInfo entities.LoginInfo) error
+	Update(ctx context.Context, loginInfo entities.LoginInfo) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }
 

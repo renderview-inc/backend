@@ -4,8 +4,8 @@ import "golang.org/x/crypto/bcrypt"
 
 type BcryptPasswordHasher struct{}
 
-func NewBcryptPasswordHasher() *BcryptPasswordHasher {
-	return &BcryptPasswordHasher{}
+func NewBcryptPasswordHasher() BcryptPasswordHasher {
+	return BcryptPasswordHasher{}
 }
 
 func (bph BcryptPasswordHasher) HashPassword(password string) (string, error) {

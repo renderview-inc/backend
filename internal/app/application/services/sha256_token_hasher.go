@@ -5,14 +5,10 @@ import (
 	"encoding/hex"
 )
 
-type Sha256TokenHasher struct {
-	salt string
-}
+type Sha256TokenHasher struct{}
 
-func NewSha256TokenHasher(salt string) *Sha256TokenHasher {
-	return &Sha256TokenHasher{
-		salt: salt,
-	}
+func NewSha256TokenHasher() Sha256TokenHasher {
+	return Sha256TokenHasher{}
 }
 
 func (sth Sha256TokenHasher) HashToken(token string) (string, error) {

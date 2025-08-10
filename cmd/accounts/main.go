@@ -47,7 +47,7 @@ func main() {
 	passwordHasher := services.NewBcryptPasswordHasher()
 	txHelper := txhelper.NewTxHelper(dbPool)
 	tokenIssuer := services.NewBase64TokenIssuer(20, 30*time.Minute, 30*24*time.Hour)
-	tokenHasher := services.NewSha256TokenHasher("some-salt") // TODO: вынести в ENV
+	tokenHasher := services.NewSha256TokenHasher()
 
 	userAccountService := services.NewUserAccountService(userAccountRepo, passwordHasher)
 	authService := services.NewAuthService(
@@ -61,7 +61,7 @@ func main() {
 	)
 
 	// Handlers
-	userAccountHandler := v1.NewUserAccountHandler(&userAccountService, *passwordHasher)
+	userAccountHandler := v1.NewUserAccountHandler(&userAccountService, passwordHasher)
 	authHandler := v1.NewAuthHandler(authService)
 
 	// Router

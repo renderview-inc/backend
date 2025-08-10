@@ -2,7 +2,9 @@ package v1
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -18,10 +20,19 @@ type UserAccountHandler struct {
 }
 
 func NewUserAccountHandler(accountService *services.UserAccountService, passwordHasher services.BcryptPasswordHasher) *UserAccountHandler {
+	validate := validator.New()
+
+	if err := validate.RegisterValidation("matches", func(fl validator.FieldLevel) bool {
+		tagRe := regexp.MustCompile(`^[a-zA-Z0-9_.]{3,12}$`)
+		return tagRe.MatchString(fl.Field().String())
+	}); err != nil {
+		log.Printf("Failed to register validation: %v", err)
+	}
+
 	return &UserAccountHandler{
 		accountService: accountService,
 		passwordHasher: passwordHasher,
-		validate:       validator.New(),
+		validate:       validate,
 	}
 }
 
