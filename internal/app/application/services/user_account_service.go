@@ -45,7 +45,7 @@ func NewUserAccountService(accountRepository UserAccountRepository, passwordHash
 func (uas *UserAccountService) Register(ctx context.Context, uacc *entities.UserAccount) error {
 	existingAcc, err := uas.accountRepository.ReadByTag(ctx, uacc.Tag)
 	if err != nil {
-		return fmt.Errorf("failed to check account existance: %w", err)
+		return fmt.Errorf("failed to check account existence: %w", err)
 	}
 
 	if existingAcc != nil {

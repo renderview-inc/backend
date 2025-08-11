@@ -28,7 +28,9 @@ func main() {
 	// Подключение к PostgreSQL
 	dbPool, err := postgres.NewPsqlPool(dbURL)
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v\n", err)
+		log.Printf("Unable to connect to database: %v\n", err)
+
+		return
 	}
 	defer dbPool.Close()
 
@@ -39,9 +41,6 @@ func main() {
 
 	// Redis
 	sessionCache := cache.NewUserSessionCache(redisAddr, redisPassword, 0)
-	if err != nil {
-		log.Fatalf("Unable to connect to redis: %v\n", err)
-	}
 
 	// Сервисы и вспомогательные объекты
 	passwordHasher := services.NewBcryptPasswordHasher()
@@ -74,6 +73,6 @@ func main() {
 	// Запуск сервера
 	log.Printf("Starting server on %s\n", httpServerAddr)
 	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Printf("Failed to start server: %v", err)
 	}
 }

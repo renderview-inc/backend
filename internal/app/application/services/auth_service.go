@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -142,6 +143,7 @@ func (as *AuthService) Login(ctx context.Context, loginDto dtos.FullLoginInfo) (
 	}
 	if err = as.sessionCache.SaveToken(ctx, refreshToken, refreshLifeTime); err != nil {
 		// TODO just log that cache failed
+		log.Printf("Just logging cache failed: %s", err.Error())
 	}
 
 	return dtos.Tokens{AccessToken: accessToken, RefreshToken: refreshToken}, nil
@@ -256,6 +258,7 @@ func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.T
 	}
 	if err = as.sessionCache.SaveToken(ctx, newRefreshToken, newRefreshLifeTime); err != nil {
 		// TODO just log
+		log.Printf("Just logging cache failed: %s", err.Error())
 	}
 
 	if err = tx.Commit(ctx); err != nil {

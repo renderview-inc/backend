@@ -8,20 +8,23 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	postgres "github.com/renderview-inc/backend/pkg/connections"
 )
 
 type LoginHistoryRepository struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	builder sq.StatementBuilderType
 }
 
 func NewLoginHistoryRepository(pool *pgxpool.Pool) *LoginHistoryRepository {
-	return &LoginHistoryRepository{pool}
+	return &LoginHistoryRepository{
+		pool:    pool,
+		builder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+	}
 }
 
 func (lhr *LoginHistoryRepository) Create(ctx context.Context, tx pgx.Tx, loginInfo entities.LoginInfo) error {
 	sql, args, err :=
-		postgres.Psql.Insert("user_login_histories").
+		lhr.builder.Insert("user_login_histories").
 			Columns("login_id", "user_id", "login_time", "user_agent", "ip_address", "success").
 			Values(loginInfo.Id, loginInfo.UserID, loginInfo.LoginTime, loginInfo.UserAgent,
 				loginInfo.IpAddr.String(), loginInfo.Success).ToSql()
@@ -38,7 +41,7 @@ func (lhr *LoginHistoryRepository) Create(ctx context.Context, tx pgx.Tx, loginI
 }
 
 func (lhr *LoginHistoryRepository) ReadById(ctx context.Context, id uuid.UUID) (*entities.LoginInfo, error) {
-	sql, args, err := postgres.Psql.Select("login_id", "user_id", "login_time", "user_agent", "ip_address", "success").
+	sql, args, err := lhr.builder.Select("login_id", "user_id", "login_time", "user_agent", "ip_address", "success").
 		From("user_login_histories").Where(sq.Eq{"login_id": id}).ToSql()
 
 	if err != nil {
@@ -60,7 +63,7 @@ func (lhr *LoginHistoryRepository) ReadById(ctx context.Context, id uuid.UUID) (
 
 func (lhr *LoginHistoryRepository) Update(ctx context.Context, loginInfo entities.LoginInfo) error {
 	sql, args, err :=
-		postgres.Psql.Update("user_login_histories").
+		lhr.builder.Update("user_login_histories").
 			Set("user_id", loginInfo.UserID).
 			Set("login_time", loginInfo.LoginTime).
 			Set("user_agent", loginInfo.UserAgent).
@@ -82,7 +85,7 @@ func (lhr *LoginHistoryRepository) Update(ctx context.Context, loginInfo entitie
 }
 
 func (lhr *LoginHistoryRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	sql, args, err := postgres.Psql.Delete("user_login_histories").Where(sq.Eq{"login_id": id}).ToSql()
+	sql, args, err := lhr.builder.Delete("user_login_histories").Where(sq.Eq{"login_id": id}).ToSql()
 
 	if err != nil {
 		return err

@@ -9,19 +9,22 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	postgres "github.com/renderview-inc/backend/pkg/connections"
 )
 
 type UserAccountRepository struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	builder sq.StatementBuilderType
 }
 
 func NewUserAccountRepository(pool *pgxpool.Pool) *UserAccountRepository {
-	return &UserAccountRepository{pool}
+	return &UserAccountRepository{
+		pool:    pool,
+		builder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+	}
 }
 
 func (uar *UserAccountRepository) Create(ctx context.Context, uacc *entities.UserAccount) error {
-	sql, args, err := postgres.Psql.Insert("user_accounts").
+	sql, args, err := uar.builder.Insert("user_accounts").
 		Columns("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
 		Values(uacc.Id, uacc.Tag, uacc.Name, uacc.Desc, uacc.PasswordHash, uacc.Email, uacc.Phone).
 		ToSql()
@@ -36,7 +39,7 @@ func (uar *UserAccountRepository) Create(ctx context.Context, uacc *entities.Use
 }
 
 func (uar *UserAccountRepository) ReadById(ctx context.Context, accID uuid.UUID) (*entities.UserAccount, error) {
-	sql, args, err := postgres.Psql.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
+	sql, args, err := uar.builder.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
 		From("user_accounts").Where(sq.Eq{"id": accID}).ToSql()
 
 	if err != nil {
@@ -57,7 +60,7 @@ func (uar *UserAccountRepository) ReadById(ctx context.Context, accID uuid.UUID)
 }
 
 func (uar *UserAccountRepository) ReadByTag(ctx context.Context, accTag string) (*entities.UserAccount, error) {
-	sql, args, err := postgres.Psql.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
+	sql, args, err := uar.builder.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
 		From("user_accounts").Where(sq.Eq{"tag": accTag}).ToSql()
 
 	if err != nil {
@@ -78,7 +81,7 @@ func (uar *UserAccountRepository) ReadByTag(ctx context.Context, accTag string) 
 }
 
 func (uar *UserAccountRepository) ReadByEmail(ctx context.Context, email string) (*entities.UserAccount, error) {
-	sql, args, err := postgres.Psql.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
+	sql, args, err := uar.builder.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
 		From("user_accounts").Where(sq.Eq{"email": email}).ToSql()
 
 	if err != nil {
@@ -99,7 +102,7 @@ func (uar *UserAccountRepository) ReadByEmail(ctx context.Context, email string)
 }
 
 func (uar *UserAccountRepository) ReadByPhone(ctx context.Context, phone string) (*entities.UserAccount, error) {
-	sql, args, err := postgres.Psql.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
+	sql, args, err := uar.builder.Select("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
 		From("user_accounts").Where(sq.Eq{"phone": phone}).ToSql()
 
 	if err != nil {
@@ -121,7 +124,7 @@ func (uar *UserAccountRepository) ReadByPhone(ctx context.Context, phone string)
 
 func (uar *UserAccountRepository) Update(ctx context.Context, uacc *entities.UserAccount) error {
 	sql, args, err :=
-		postgres.Psql.Update("user_accounts").
+		uar.builder.Update("user_accounts").
 			Set("tag", uacc.Tag).
 			Set("name", uacc.Name).
 			Set("\"desc\"", uacc.Desc).
@@ -144,7 +147,7 @@ func (uar *UserAccountRepository) Update(ctx context.Context, uacc *entities.Use
 }
 
 func (uar *UserAccountRepository) Delete(ctx context.Context, accID uuid.UUID) error {
-	sql, args, err := postgres.Psql.Delete("user_accounts").Where(sq.Eq{"id": accID}).ToSql()
+	sql, args, err := uar.builder.Delete("user_accounts").Where(sq.Eq{"id": accID}).ToSql()
 
 	if err != nil {
 		return err

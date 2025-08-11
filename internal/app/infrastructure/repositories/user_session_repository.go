@@ -8,20 +8,23 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	postgres "github.com/renderview-inc/backend/pkg/connections"
 )
 
 type UserSessionRepository struct {
-	pool *pgxpool.Pool
+	pool    *pgxpool.Pool
+	builder sq.StatementBuilderType
 }
 
 func NewUserSessionRepository(pool *pgxpool.Pool) *UserSessionRepository {
-	return &UserSessionRepository{pool}
+	return &UserSessionRepository{
+		pool:    pool,
+		builder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
+	}
 }
 
 func (usr *UserSessionRepository) Create(ctx context.Context, tx pgx.Tx, session entities.UserSession) error {
 	sql, args, err :=
-		postgres.Psql.Insert("user_sessions").
+		usr.builder.Insert("user_sessions").
 			Columns("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 				"revoked", "rotated_from_session_id").
 			Values(session.Id, session.UserID, session.RefreshTokenHash, session.CreatedAt,
@@ -41,7 +44,7 @@ func (usr *UserSessionRepository) Create(ctx context.Context, tx pgx.Tx, session
 
 func (usr *UserSessionRepository) CreateStandalone(ctx context.Context, session entities.UserSession) error {
 	sql, args, err :=
-		postgres.Psql.Insert("user_sessions").
+		usr.builder.Insert("user_sessions").
 			Columns("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 				"revoked", "rotated_from_session_id").
 			Values(session.Id, session.UserID, session.RefreshTokenHash, session.CreatedAt,
@@ -60,7 +63,7 @@ func (usr *UserSessionRepository) CreateStandalone(ctx context.Context, session 
 }
 
 func (usr *UserSessionRepository) ReadById(ctx context.Context, id uuid.UUID) (*entities.UserSession, error) {
-	sql, args, err := postgres.Psql.Select("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
+	sql, args, err := usr.builder.Select("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 		"revoked", "rotated_from_session_id").
 		From("user_sessions").Where(sq.Eq{"id": id}).ToSql()
 
@@ -83,7 +86,7 @@ func (usr *UserSessionRepository) ReadById(ctx context.Context, id uuid.UUID) (*
 
 func (usr *UserSessionRepository) Update(ctx context.Context, session entities.UserSession) error {
 	sql, args, err :=
-		postgres.Psql.Update("user_sessions").
+		usr.builder.Update("user_sessions").
 			Set("user_id", session.UserID).
 			Set("refresh_token_hash", session.RefreshTokenHash).
 			Set("created_at", session.CreatedAt).
@@ -108,7 +111,7 @@ func (usr *UserSessionRepository) Update(ctx context.Context, session entities.U
 }
 
 func (usr *UserSessionRepository) Delete(ctx context.Context, id uuid.UUID) error {
-	sql, args, err := postgres.Psql.Delete("user_sessions").Where(sq.Eq{"id": id}).ToSql()
+	sql, args, err := usr.builder.Delete("user_sessions").Where(sq.Eq{"id": id}).ToSql()
 
 	if err != nil {
 		return err
