@@ -8,6 +8,6 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o accs_http ./cmd/accounts
+RUN go build -o accs_http ./cmd
 
 CMD ["./accs_http"]

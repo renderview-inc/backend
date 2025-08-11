@@ -22,7 +22,7 @@ func NewAuthHandler(authService *services.AuthService) *AuthHandler {
 
 func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var loginDto dtos.Login
-	if err := json.NewDecoder(r.Body).Decode(&loginDto.Credentials); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&loginDto); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
