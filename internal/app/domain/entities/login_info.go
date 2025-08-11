@@ -9,7 +9,7 @@ import (
 
 type LoginInfo struct {
 	Id        uuid.UUID
-	UserID   uuid.UUID
+	UserID    uuid.UUID
 	LoginTime time.Time
 	UserAgent string
 	IpAddr    net.IP
