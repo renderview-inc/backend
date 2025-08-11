@@ -7,15 +7,15 @@ import (
 )
 
 type UserSession struct {
-	id                   uuid.UUID
-	userID               uuid.UUID
-	refreshTokenHash     string
-	createdAt            time.Time
-	updatedAt            time.Time
-	refreshExpiresAt     time.Time
-	lastUsedAt           time.Time
-	revoked              bool
-	rotatedFromSessionID *uuid.UUID
+	Id                   uuid.UUID
+	UserID               uuid.UUID
+	RefreshTokenHash     string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	RefreshExpiresAt     time.Time
+	LastUsedAt           time.Time
+	Revoked              bool
+	RotatedFromSessionID *uuid.UUID
 }
 
 func NewUserSession(id uuid.UUID, userID uuid.UUID, refreshTokenHash string,
@@ -26,38 +26,38 @@ func NewUserSession(id uuid.UUID, userID uuid.UUID, refreshTokenHash string,
 	}
 }
 
-func (us *UserSession) ID() uuid.UUID {
-	return us.id
+func (us *UserSession) GetID() uuid.UUID {
+	return us.Id
 }
 
-func (us *UserSession) UserID() uuid.UUID {
-	return us.userID
+func (us *UserSession) GetUserID() uuid.UUID {
+	return us.UserID
 }
 
-func (us *UserSession) RefreshTokenHash() string {
-	return us.refreshTokenHash
+func (us *UserSession) GetRefreshTokenHash() string {
+	return us.RefreshTokenHash
 }
 
-func (us *UserSession) CreatedAt() time.Time {
-	return us.createdAt
+func (us *UserSession) GetCreatedAt() time.Time {
+	return us.CreatedAt
 }
 
-func (us *UserSession) UpdatedAt() time.Time {
-	return us.updatedAt
+func (us *UserSession) GetUpdatedAt() time.Time {
+	return us.UpdatedAt
 }
 
-func (us *UserSession) RefreshExpiresAt() time.Time {
-	return us.refreshExpiresAt
+func (us *UserSession) GetRefreshExpiresAt() time.Time {
+	return us.RefreshExpiresAt
 }
 
-func (us *UserSession) LastUsedAt() time.Time {
-	return us.lastUsedAt
+func (us *UserSession) GetLastUsedAt() time.Time {
+	return us.LastUsedAt
 }
 
-func (us *UserSession) Revoked() bool {
-	return us.revoked
+func (us *UserSession) GetRevoked() bool {
+	return us.Revoked
 }
 
-func (us *UserSession) RotatedFromSessionID() *uuid.UUID {
-	return us.rotatedFromSessionID
+func (us *UserSession) GetRotatedFromSessionGetID() *uuid.UUID {
+	return us.RotatedFromSessionID
 }

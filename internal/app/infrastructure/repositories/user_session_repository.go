@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
-	"github.com/renderview-inc/backend/pkg/postgres"
+	postgres "github.com/renderview-inc/backend/pkg/connections"
 )
 
 type UserSessionRepository struct {
@@ -24,8 +24,8 @@ func (usr *UserSessionRepository) Create(ctx context.Context, tx pgx.Tx, session
 		postgres.Psql.Insert("user_sessions").
 			Columns("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 				"revoked", "rotated_from_session_id").
-			Values(session.ID(), session.UserID(), session.RefreshTokenHash(), session.CreatedAt(),
-				session.RefreshTokenHash(), session.LastUsedAt(), session.Revoked(), session.RotatedFromSessionID()).
+			Values(session.GetID(), session.GetUserID(), session.GetRefreshTokenHash(), session.GetCreatedAt(),
+				session.GetRefreshTokenHash(), session.GetLastUsedAt(), session.GetRevoked(), session.GetRotatedFromSessionGetID()).
 			ToSql()
 	if err != nil {
 		return err
@@ -44,8 +44,8 @@ func (usr *UserSessionRepository) CreateStandalone(ctx context.Context, session 
 		postgres.Psql.Insert("user_sessions").
 			Columns("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 				"revoked", "rotated_from_session_id").
-			Values(session.ID(), session.UserID(), session.RefreshTokenHash(), session.CreatedAt(),
-				session.RefreshTokenHash(), session.LastUsedAt(), session.Revoked(), session.RotatedFromSessionID()).
+			Values(session.GetID(), session.GetUserID(), session.GetRefreshTokenHash(), session.GetCreatedAt(),
+				session.GetRefreshTokenHash(), session.GetLastUsedAt(), session.GetRevoked(), session.GetRotatedFromSessionGetID()).
 			ToSql()
 	if err != nil {
 		return err
@@ -84,15 +84,15 @@ func (usr *UserSessionRepository) ReadById(ctx context.Context, id uuid.UUID) (*
 func (usr *UserSessionRepository) Update(ctx context.Context, session entities.UserSession) error {
 	sql, args, err :=
 		postgres.Psql.Update("user_sessions").
-			Set("user_id", session.UserID()).
-			Set("refresh_token_hash", session.RefreshTokenHash()).
-			Set("created_at", session.CreatedAt()).
-			Set("updated_at", session.UpdatedAt()).
-			Set("refresh_expires_at", session.RefreshExpiresAt()).
-			Set("last_used_at", session.LastUsedAt()).
-			Set("revoked", session.Revoked()).
-			Set("rotated_from_session_id", session.RotatedFromSessionID()).
-			Where(sq.Eq{"id": session.ID()}).
+			Set("user_id", session.GetUserID()).
+			Set("refresh_token_hash", session.GetRefreshTokenHash()).
+			Set("created_at", session.GetCreatedAt()).
+			Set("updated_at", session.GetUpdatedAt()).
+			Set("refresh_expires_at", session.GetRefreshExpiresAt()).
+			Set("last_used_at", session.GetLastUsedAt()).
+			Set("revoked", session.GetRevoked()).
+			Set("rotated_from_session_id", session.GetRotatedFromSessionGetID()).
+			Where(sq.Eq{"id": session.GetID()}).
 			ToSql()
 
 	if err != nil {

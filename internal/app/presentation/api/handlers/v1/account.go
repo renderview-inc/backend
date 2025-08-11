@@ -1,15 +1,81 @@
 package v1
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
 	"net/http"
+	"regexp"
 
+	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/renderview-inc/backend/internal/app/application/dtos"
 	"github.com/renderview-inc/backend/internal/app/application/services"
+	"github.com/renderview-inc/backend/internal/app/domain/entities"
 )
 
 type UserAccountHandler struct {
 	accountService *services.UserAccountService
+	passwordHasher services.BcryptPasswordHasher
+	validate       *validator.Validate
 }
 
-func (uah *UserAccountHandler) HandleRegister(w http.ResponseWriter, r *http.Response) {
-	
+func NewUserAccountHandler(accountService *services.UserAccountService, passwordHasher services.BcryptPasswordHasher) *UserAccountHandler {
+	validate := validator.New()
+
+	if err := validate.RegisterValidation("matches", func(fl validator.FieldLevel) bool {
+		tagRe := regexp.MustCompile(`^[a-zA-Z0-9_.]{3,12}$`)
+		return tagRe.MatchString(fl.Field().String())
+	}); err != nil {
+		log.Printf("Failed to register validation: %v", err)
+	}
+
+	return &UserAccountHandler{
+		accountService: accountService,
+		passwordHasher: passwordHasher,
+		validate:       validate,
+	}
+}
+
+func (uah *UserAccountHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
+	var registerDto dtos.Register
+	if err := json.NewDecoder(r.Body).Decode(&registerDto); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if err := uah.validate.Struct(registerDto); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Manual validation for either email or phone
+	if registerDto.Credentials.Email == "" && registerDto.Credentials.Phone == "" {
+		http.Error(w, "Either email or phone must be provided", http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, err := uah.passwordHasher.HashPassword(registerDto.Credentials.Password)
+	if err != nil {
+		http.Error(w, "Failed to process password", http.StatusInternalServerError)
+		return
+	}
+
+	userAccount := entities.NewUserAccount(
+		uuid.New(),
+		registerDto.Credentials.Tag,
+		registerDto.Name,
+		registerDto.Desc,
+		hashedPassword,
+		registerDto.Credentials.Email,
+		registerDto.Credentials.Phone,
+	)
+
+	if err := uah.accountService.Register(r.Context(), userAccount); err != nil {
+		// TODO: handle different error types
+		http.Error(w, fmt.Sprintf("Failed to register user: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
 }

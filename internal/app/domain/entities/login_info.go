@@ -8,12 +8,12 @@ import (
 )
 
 type LoginInfo struct {
-	id        uuid.UUID
-	userID    uuid.UUID
-	loginTime time.Time
-	userAgent string
-	ipAddr    net.IP
-	success   bool
+	Id        uuid.UUID
+	UserID   uuid.UUID
+	LoginTime time.Time
+	UserAgent string
+	IpAddr    net.IP
+	Success   bool
 }
 
 func NewLoginInfo(id uuid.UUID, userID uuid.UUID, loginTime time.Time,
@@ -23,26 +23,26 @@ func NewLoginInfo(id uuid.UUID, userID uuid.UUID, loginTime time.Time,
 	}
 }
 
-func (li *LoginInfo) ID() uuid.UUID {
-	return li.id
+func (li *LoginInfo) GetID() uuid.UUID {
+	return li.Id
 }
 
-func (li *LoginInfo) UserID() uuid.UUID {
-	return li.userID
+func (li *LoginInfo) UserGetID() uuid.UUID {
+	return li.UserID
 }
 
-func (li *LoginInfo) LoginTime() time.Time {
-	return li.loginTime
+func (li *LoginInfo) GetLoginTime() time.Time {
+	return li.LoginTime
 }
 
-func (li *LoginInfo) UserAgent() string {
-	return li.userAgent
+func (li *LoginInfo) GetUserAgent() string {
+	return li.UserAgent
 }
 
-func (li *LoginInfo) IpAddr() net.IP {
-	return li.ipAddr
+func (li *LoginInfo) GetIpAddr() net.IP {
+	return li.IpAddr
 }
 
-func (li *LoginInfo) Success() bool {
-	return li.success
+func (li *LoginInfo) GetSuccess() bool {
+	return li.Success
 }

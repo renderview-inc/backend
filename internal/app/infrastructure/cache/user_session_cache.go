@@ -11,8 +11,16 @@ type UserSessionCache struct {
 	client *redis.Client
 }
 
-func NewUserSessionCache(client *redis.Client) *UserSessionCache {
-	return &UserSessionCache{client}
+func NewUserSessionCache(redisAddr string, password string, db int) *UserSessionCache {
+	client := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: password,
+		DB:       db,
+	})
+
+	return &UserSessionCache{
+		client: client,
+	}
 }
 
 func (usc *UserSessionCache) SaveToken(ctx context.Context, token string, ttl time.Duration) error {

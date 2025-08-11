@@ -1,36 +1,4 @@
 services:
-  nats:
-    image: nats:latest
-    container_name: nats
-    command: ["-js"]
-    ports:
-      - "4222:4222"
-    networks:
-      - users-network
-    restart: unless-stopped
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.6.0
-    container_name: zookeeper
-    networks:
-      - users-network
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-
-  kafka:
-    image: confluentinc/cp-kafka:7.6.0
-    container_name: kafka
-    ports:
-      - "9092:9092"
-    networks:
-      - users-network
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
-
   postgres-db:
     image: postgres:17
     restart: unless-stopped
@@ -41,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -50,6 +18,15 @@ services:
       - .pgdata:/var/lib/postgresql/data
     networks:
       - migrations
+      - backend
+
+  redis:
+    image: redis:latest
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    networks:
       - backend
 
   liquibase-migrate:
@@ -73,6 +50,21 @@ services:
     networks:
       - migrations
 
+  accounts:
+      build:
+        context: ./
+        dockerfile: ./cmd/accounts/Dockerfile
+      container_name: accounts
+      env_file:
+        - ./.env
+      depends_on:
+        postgres-db:
+          condition: service_healthy
+      networks:
+        - backend
+      ports:
+        - "9112:8080"
+
 volumes:
   .pgdata:
 
@@ -80,8 +72,5 @@ networks:
   migrations:
     driver: bridge
   backend:
-    external: true
-    name: shared-backend
-  users-network:
-    name: users-network
     driver: bridge
+    name: shared-backend
