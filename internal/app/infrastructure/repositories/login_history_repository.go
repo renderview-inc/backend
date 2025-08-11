@@ -23,8 +23,8 @@ func (lhr *LoginHistoryRepository) Create(ctx context.Context, tx pgx.Tx, loginI
 	sql, args, err :=
 		postgres.Psql.Insert("user_login_histories").
 			Columns("login_id", "user_id", "login_time", "user_agent", "ip_address", "success").
-			Values(loginInfo.GetID(), loginInfo.UserGetID(), loginInfo.GetLoginTime(), loginInfo.GetUserAgent(),
-				loginInfo.GetIpAddr().String(), loginInfo.GetSuccess()).ToSql()
+			Values(loginInfo.Id, loginInfo.UserID, loginInfo.LoginTime, loginInfo.UserAgent,
+				loginInfo.IpAddr.String(), loginInfo.Success).ToSql()
 	if err != nil {
 		return err
 	}
@@ -61,12 +61,12 @@ func (lhr *LoginHistoryRepository) ReadById(ctx context.Context, id uuid.UUID) (
 func (lhr *LoginHistoryRepository) Update(ctx context.Context, loginInfo entities.LoginInfo) error {
 	sql, args, err :=
 		postgres.Psql.Update("user_login_histories").
-			Set("user_id", loginInfo.UserGetID()).
-			Set("login_time", loginInfo.GetLoginTime()).
-			Set("user_agent", loginInfo.GetUserAgent()).
-			Set("ip_address", loginInfo.GetIpAddr()).
-			Set("success", loginInfo.GetSuccess()).
-			Where(sq.Eq{"login_id": loginInfo.GetID()}).
+			Set("user_id", loginInfo.UserID).
+			Set("login_time", loginInfo.LoginTime).
+			Set("user_agent", loginInfo.UserAgent).
+			Set("ip_address", loginInfo.IpAddr).
+			Set("success", loginInfo.Success).
+			Where(sq.Eq{"login_id": loginInfo.Id}).
 			ToSql()
 
 	if err != nil {

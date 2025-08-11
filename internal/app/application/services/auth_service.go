@@ -189,16 +189,16 @@ func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.T
 			return dtos.Tokens{}, ErrInvalidSessionID
 		}
 
-		if session.GetRefreshTokenHash() != refreshTokenHash {
+		if session.RefreshTokenHash != refreshTokenHash {
 			return dtos.Tokens{}, ErrInvalidRefreshToken
 		}
-		if session.GetRefreshExpiresAt().Before(time.Now()) {
+		if session.RefreshExpiresAt.Before(time.Now()) {
 			return dtos.Tokens{}, ErrSessionExpired
 		}
 	}
 
 	newAccessToken, newAccessLifeTime,
-		newRefreshToken, newRefreshLifeTime, err := as.issueTokens(session.GetID())
+		newRefreshToken, newRefreshLifeTime, err := as.issueTokens(session.Id)
 	if err != nil {
 		return dtos.Tokens{}, fmt.Errorf("issue new tokens: %w", err)
 	}
@@ -212,9 +212,9 @@ func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.T
 
 	newSession := entities.NewUserSession(
 		uuid.New(),
-		session.GetUserID(),
+		session.UserID,
 		newRefreshTokenHash,
-		session.GetCreatedAt(),
+		session.CreatedAt,
 		now,
 		now.Add(newRefreshLifeTime),
 		now,
@@ -223,14 +223,14 @@ func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.T
 	)
 	updatedOldSession := entities.NewUserSession(
 		sessionID,
-		session.GetUserID(),
-		session.GetRefreshTokenHash(),
-		session.GetCreatedAt(),
+		session.UserID,
+		session.RefreshTokenHash,
+		session.CreatedAt,
 		now,
-		session.GetRefreshExpiresAt(),
-		session.GetLastUsedAt(),
+		session.RefreshExpiresAt,
+		session.LastUsedAt,
 		true,
-		session.GetRotatedFromSessionGetID(),
+		session.RotatedFromSessionID,
 	)
 
 	tx, err := as.txHelper.Begin(ctx)
@@ -286,14 +286,14 @@ func (as *AuthService) Logout(ctx context.Context, tokens dtos.Tokens) error {
 
 	revokedSession := entities.NewUserSession(
 		sessionID,
-		session.GetUserID(),
-		session.GetRefreshTokenHash(),
-		session.GetCreatedAt(),
+		session.UserID,
+		session.RefreshTokenHash,
+		session.CreatedAt,
 		time.Now(),
-		session.GetRefreshExpiresAt(),
-		session.GetLastUsedAt(),
+		session.RefreshExpiresAt,
+		session.LastUsedAt,
 		true,
-		session.GetRotatedFromSessionGetID(),
+		session.RotatedFromSessionID,
 	)
 
 	if err := as.sessionRepository.Update(ctx, revokedSession); err != nil {

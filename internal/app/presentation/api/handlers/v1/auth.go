@@ -49,7 +49,7 @@ func (h *AuthHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	if err := json.NewEncoder(w).Encode(tokens); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to encode response: %s", err.Error()), http.StatusInternalServerError)
 	}
@@ -86,7 +86,7 @@ func (h *AuthHandler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	if err := json.NewEncoder(w).Encode(tokens); err != nil {
 		http.Error(w, fmt.Sprintf("Failed to encode response: %s", err.Error()), http.StatusInternalServerError)
 	}

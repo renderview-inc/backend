@@ -23,7 +23,7 @@ func NewUserAccountRepository(pool *pgxpool.Pool) *UserAccountRepository {
 func (uar *UserAccountRepository) Create(ctx context.Context, uacc *entities.UserAccount) error {
 	sql, args, err := postgres.Psql.Insert("user_accounts").
 		Columns("id", "tag", "name", "\"desc\"", "password_hash", "email", "phone").
-		Values(uacc.GetID(), uacc.GetTag(), uacc.GetName(), uacc.GetDesc(), uacc.GetPasswordHash(), uacc.GetEmail(), uacc.GetPhone()).
+		Values(uacc.Id, uacc.Tag, uacc.Name, uacc.Desc, uacc.PasswordHash, uacc.Email, uacc.Phone).
 		ToSql()
 
 	if err != nil {
@@ -31,7 +31,7 @@ func (uar *UserAccountRepository) Create(ctx context.Context, uacc *entities.Use
 	}
 
 	_, err = uar.pool.Exec(ctx, sql, args...)
-	log.Printf("UserAccount created: %v", uacc.GetID())
+	log.Printf("UserAccount created: %v", uacc.Id)
 	return err
 }
 
@@ -122,13 +122,13 @@ func (uar *UserAccountRepository) ReadByPhone(ctx context.Context, phone string)
 func (uar *UserAccountRepository) Update(ctx context.Context, uacc *entities.UserAccount) error {
 	sql, args, err :=
 		postgres.Psql.Update("user_accounts").
-			Set("tag", uacc.GetTag()).
-			Set("name", uacc.GetName()).
-			Set("\"desc\"", uacc.GetDesc()).
-			Set("password_hash", uacc.GetPasswordHash()).
-			Set("email", uacc.GetEmail()).
-			Set("phone", uacc.GetPhone()).
-			Where(sq.Eq{"id": uacc.GetID()}).
+			Set("tag", uacc.Tag).
+			Set("name", uacc.Name).
+			Set("\"desc\"", uacc.Desc).
+			Set("password_hash", uacc.PasswordHash).
+			Set("email", uacc.Email).
+			Set("phone", uacc.Phone).
+			Where(sq.Eq{"id": uacc.Id}).
 			ToSql()
 
 	if err != nil {
