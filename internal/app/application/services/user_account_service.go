@@ -43,7 +43,7 @@ func NewUserAccountService(accountRepository UserAccountRepository, passwordHash
 }
 
 func (uas *UserAccountService) Register(ctx context.Context, uacc *entities.UserAccount) error {
-	existingAcc, err := uas.accountRepository.ReadByTag(ctx, uacc.Tag())
+	existingAcc, err := uas.accountRepository.ReadByTag(ctx, uacc.GetTag())
 	if err != nil {
 		return fmt.Errorf("failed to check account existance: %w", err)
 	}
@@ -60,7 +60,7 @@ func (uas *UserAccountService) Register(ctx context.Context, uacc *entities.User
 	return nil
 }
 
-func (uas *UserAccountService) VerifyCredentials(ctx context.Context, credentials dtos.CredentialsDto) (*uuid.UUID, error) {
+func (uas *UserAccountService) VerifyCredentials(ctx context.Context, credentials dtos.Credentials) (*uuid.UUID, error) {
 	var acc *entities.UserAccount
 	var err error
 
@@ -87,10 +87,10 @@ func (uas *UserAccountService) VerifyCredentials(ctx context.Context, credential
 		return nil, ErrNoAccountFound
 	}
 
-	if !uas.passwordHasher.VerifyPassword(credentials.Password, acc.PasswordHash()) {
+	if !uas.passwordHasher.VerifyPassword(credentials.Password, acc.GetPasswordHash()) {
 		return nil, nil
 	}
 
-	id := acc.ID()
+	id := acc.GetID()
 	return &id, nil
 }

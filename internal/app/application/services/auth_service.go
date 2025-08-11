@@ -71,26 +71,26 @@ func NewAuthService(loginHistoryRepository LoginHistoryRepository,
 	}
 }
 
-func (as *AuthService) Login(ctx context.Context, loginDto dtos.LoginDto) (dtos.TokensDto, error) {
+func (as *AuthService) Login(ctx context.Context, loginDto dtos.FullLoginInfo) (dtos.Tokens, error) {
 	userID, err := as.accountService.VerifyCredentials(ctx, loginDto.Credentials)
 
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("verify credentials: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("verify credentials: %w", err)
 	}
 	if userID == nil {
-		return dtos.TokensDto{}, ErrInvalidCredentials
+		return dtos.Tokens{}, ErrInvalidCredentials
 	}
 	sessionID := uuid.New()
 
 	accessToken, accessLifeTime,
 		refreshToken, refreshLifeTime, err := as.issueTokens(sessionID)
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("issue tokens: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("issue tokens: %w", err)
 	}
 
 	refreshTokenHash, err := as.tokenHasher.HashToken(refreshToken)
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("hash refresh token: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("hash refresh token: %w", err)
 	}
 
 	now := time.Now()
@@ -117,34 +117,34 @@ func (as *AuthService) Login(ctx context.Context, loginDto dtos.LoginDto) (dtos.
 
 	repoTx, err := as.txHelper.Begin(ctx)
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("save session and login info: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("save session and login info: %w", err)
 	}
 
 	if err := as.sessionRepository.Create(ctx, repoTx, userSession); err != nil {
 		if err := repoTx.Rollback(ctx); err != nil {
-			return dtos.TokensDto{}, fmt.Errorf("rollback save session db transaction: %w", err)
+			return dtos.Tokens{}, fmt.Errorf("rollback save session db transaction: %w", err)
 		}
-		return dtos.TokensDto{}, fmt.Errorf("save session: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("save session: %w", err)
 	}
 	if err := as.loginHistoryRepository.Create(ctx, repoTx, userLogin); err != nil {
 		if err := repoTx.Rollback(ctx); err != nil {
-			return dtos.TokensDto{}, fmt.Errorf("rollback save login info db transaction: %w", err)
+			return dtos.Tokens{}, fmt.Errorf("rollback save login info db transaction: %w", err)
 		}
-		return dtos.TokensDto{}, fmt.Errorf("save login info: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("save login info: %w", err)
 	}
 
 	if err = repoTx.Commit(ctx); err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("commit transaction to save session and login info: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("commit transaction to save session and login info: %w", err)
 	}
 
 	if err = as.sessionCache.SaveToken(ctx, accessToken, accessLifeTime); err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("save access token to cache: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("save access token to cache: %w", err)
 	}
 	if err = as.sessionCache.SaveToken(ctx, refreshToken, refreshLifeTime); err != nil {
 		// TODO just log that cache failed
 	}
 
-	return dtos.TokensDto{AccessToken: accessToken, RefreshToken: refreshToken}, nil
+	return dtos.Tokens{AccessToken: accessToken, RefreshToken: refreshToken}, nil
 }
 
 func (as *AuthService) Authorize(ctx context.Context, accessToken string) error {
@@ -160,61 +160,61 @@ func (as *AuthService) Authorize(ctx context.Context, accessToken string) error 
 	return nil
 }
 
-func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.TokensDto, error) {
+func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.Tokens, error) {
 	var session *entities.UserSession
 	tokenInfo := strings.Split(refreshToken, ".")
 	sessionID, err := uuid.Parse(tokenInfo[0])
 
 	if err != nil {
-		return dtos.TokensDto{}, ErrInvalidSessionID
+		return dtos.Tokens{}, ErrInvalidSessionID
 	}
 
 	refreshTokenHash, err := as.tokenHasher.HashToken(refreshToken)
 
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("hash refresh token: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("hash refresh token: %w", err)
 	}
 
 	ok, err := as.sessionCache.CheckToken(ctx, refreshToken)
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("check refresh token in cache: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("check refresh token in cache: %w", err)
 	}
 
 	if !ok {
 		session, err = as.sessionRepository.ReadById(ctx, sessionID)
 		if err != nil {
-			return dtos.TokensDto{}, fmt.Errorf("read session by ID: %w", err)
+			return dtos.Tokens{}, fmt.Errorf("read session by ID: %w", err)
 		}
 		if session == nil {
-			return dtos.TokensDto{}, ErrInvalidSessionID
+			return dtos.Tokens{}, ErrInvalidSessionID
 		}
 
-		if session.RefreshTokenHash() != refreshTokenHash {
-			return dtos.TokensDto{}, ErrInvalidRefreshToken
+		if session.GetRefreshTokenHash() != refreshTokenHash {
+			return dtos.Tokens{}, ErrInvalidRefreshToken
 		}
-		if session.RefreshExpiresAt().Before(time.Now()) {
-			return dtos.TokensDto{}, ErrSessionExpired
+		if session.GetRefreshExpiresAt().Before(time.Now()) {
+			return dtos.Tokens{}, ErrSessionExpired
 		}
 	}
 
 	newAccessToken, newAccessLifeTime,
-		newRefreshToken, newRefreshLifeTime, err := as.issueTokens(session.ID())
+		newRefreshToken, newRefreshLifeTime, err := as.issueTokens(session.GetID())
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("issue new tokens: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("issue new tokens: %w", err)
 	}
 
 	newRefreshTokenHash, err := as.tokenHasher.HashToken(newRefreshToken)
 	if err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("hash new refresh token: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("hash new refresh token: %w", err)
 	}
 
 	now := time.Now()
 
 	newSession := entities.NewUserSession(
 		uuid.New(),
-		session.UserID(),
+		session.GetUserID(),
 		newRefreshTokenHash,
-		session.CreatedAt(),
+		session.GetCreatedAt(),
 		now,
 		now.Add(newRefreshLifeTime),
 		now,
@@ -223,49 +223,49 @@ func (as *AuthService) Refresh(ctx context.Context, refreshToken string) (dtos.T
 	)
 	updatedOldSession := entities.NewUserSession(
 		sessionID,
-		session.UserID(),
-		session.RefreshTokenHash(),
-		session.CreatedAt(),
+		session.GetUserID(),
+		session.GetRefreshTokenHash(),
+		session.GetCreatedAt(),
 		now,
-		session.RefreshExpiresAt(),
-		session.LastUsedAt(),
+		session.GetRefreshExpiresAt(),
+		session.GetLastUsedAt(),
 		true,
-		session.RotatedFromSessionID(),
+		session.GetRotatedFromSessionGetID(),
 	)
 
 	tx, err := as.txHelper.Begin(ctx)
 	if err != nil {
-		return dtos.TokensDto{}, err
+		return dtos.Tokens{}, err
 	}
 
 	if err = as.sessionRepository.Create(ctx, tx, newSession); err != nil {
 		err = tx.Rollback(ctx)
 		if err != nil {
-			return dtos.TokensDto{}, fmt.Errorf("persist new session: %w", err)
+			return dtos.Tokens{}, fmt.Errorf("persist new session: %w", err)
 		}
 	}
 	if err = as.sessionRepository.Update(ctx, updatedOldSession); err != nil {
 		err = tx.Rollback(ctx)
 		if err != nil {
-			return dtos.TokensDto{}, fmt.Errorf("update old session: %w", err)
+			return dtos.Tokens{}, fmt.Errorf("update old session: %w", err)
 		}
 	}
 
 	if err = as.sessionCache.SaveToken(ctx, newAccessToken, newAccessLifeTime); err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("new access token cache: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("new access token cache: %w", err)
 	}
 	if err = as.sessionCache.SaveToken(ctx, newRefreshToken, newRefreshLifeTime); err != nil {
 		// TODO just log
 	}
 
 	if err = tx.Commit(ctx); err != nil {
-		return dtos.TokensDto{}, fmt.Errorf("commit transaction to save new session and update old one: %w", err)
+		return dtos.Tokens{}, fmt.Errorf("commit transaction to save new session and update old one: %w", err)
 	}
 
-	return dtos.TokensDto{AccessToken: newAccessToken, RefreshToken: newRefreshToken}, nil
+	return dtos.Tokens{AccessToken: newAccessToken, RefreshToken: newRefreshToken}, nil
 }
 
-func (as *AuthService) Logout(ctx context.Context, tokens dtos.TokensDto) error {
+func (as *AuthService) Logout(ctx context.Context, tokens dtos.Tokens) error {
 	if err := as.sessionCache.RevokeToken(ctx, tokens.AccessToken); err != nil {
 		return fmt.Errorf("revoke token: %w", err)
 	}
@@ -286,14 +286,14 @@ func (as *AuthService) Logout(ctx context.Context, tokens dtos.TokensDto) error 
 
 	revokedSession := entities.NewUserSession(
 		sessionID,
-		session.UserID(),
-		session.RefreshTokenHash(),
-		session.CreatedAt(),
+		session.GetUserID(),
+		session.GetRefreshTokenHash(),
+		session.GetCreatedAt(),
 		time.Now(),
-		session.RefreshExpiresAt(),
-		session.LastUsedAt(),
+		session.GetRefreshExpiresAt(),
+		session.GetLastUsedAt(),
 		true,
-		session.RotatedFromSessionID(),
+		session.GetRotatedFromSessionGetID(),
 	)
 
 	if err := as.sessionRepository.Update(ctx, revokedSession); err != nil {

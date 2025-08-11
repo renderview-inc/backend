@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -37,7 +38,7 @@ func NewUserAccountHandler(accountService *services.UserAccountService, password
 }
 
 func (uah *UserAccountHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
-	var registerDto dtos.RegisterDto
+	var registerDto dtos.Register
 	if err := json.NewDecoder(r.Body).Decode(&registerDto); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -72,7 +73,7 @@ func (uah *UserAccountHandler) HandleRegister(w http.ResponseWriter, r *http.Req
 
 	if err := uah.accountService.Register(r.Context(), userAccount); err != nil {
 		// TODO: handle different error types
-		http.Error(w, "Failed to register user", http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Failed to register user: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
