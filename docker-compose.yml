@@ -53,7 +53,7 @@ services:
   accounts:
       build:
         context: ./
-        dockerfile: ./cmd/accounts/Dockerfile
+        dockerfile: ./cmd/Dockerfile
       container_name: accounts
       env_file:
         - ./.env
