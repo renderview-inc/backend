@@ -18,5 +18,3 @@ CREATE TABLE IF NOT EXISTS user_login_histories (
     ip_address INET NOT NULL,
     success BOOL NOT NULL 
 );
-
-CREATE INDEX IF NOT EXISTS user_sessions_user_id_refresh_token_idx ON user_sessions(user_id, refresh_token);
