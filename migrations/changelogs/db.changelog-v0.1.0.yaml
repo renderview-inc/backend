@@ -41,3 +41,17 @@ databaseChangeLog:
         - sqlFile:
             path: ../sql/v0.1.0/rollbacks/0003.sql
             relativeToChangelogFile: true
+  - changeSet:
+      id: v0.1.0_0004
+      author: IlyaAGL
+      changes:
+        - tagDatabase:
+            tag: v0.1.0_0004
+        - sqlFile:
+            endDelimiter: $$
+            path: ../sql/v0.1.0/0004_Create_Messages.sql
+            relativeToChangelogFile: true
+      rollback:
+        - sqlFile:
+            path: ../sql/v0.1.0/rollbacks/0004.sql
+            relativeToChangelogFile: true

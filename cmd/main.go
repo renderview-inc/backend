@@ -38,6 +38,7 @@ func main() {
 	userSessionRepo := repositories.NewUserSessionRepository(dbPool)
 	loginHistoryRepo := repositories.NewLoginHistoryRepository(dbPool)
 	chatRepo := repositories.NewChatRepository(dbPool)
+	messageRepo := repositories.NewMessageRepository(dbPool)
 
 	sessionCache := cache.NewUserSessionCache(redisAddr, redisPassword, 0)
 
@@ -57,10 +58,12 @@ func main() {
 		tokenHasher,
 	)
 	chatService := services.NewChatService(chatRepo)
+	messageService := services.NewMessageService(messageRepo)
 
 	userAccountHandler := v1.NewUserAccountHandler(&userAccountService, passwordHasher)
 	authHandler := v1.NewAuthHandler(authService)
 	chatHandler := v1.NewChatHandler(chatService)
+	messageHandler := v1.NewMessageHandler(messageService)
 
 	mux := http.NewServeMux()
 
@@ -74,6 +77,11 @@ func main() {
 	mux.Handle("GET /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleGetChatInfo), authService))
 	mux.Handle("PUT /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleUpdateChat), authService))
 	mux.Handle("DELETE /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleDeleteChat), authService))
+
+	mux.Handle("POST /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleCreateMessage), authService))
+	mux.Handle("GET /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleGetMessage), authService))
+	mux.Handle("PUT /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleUpdateMessage), authService))
+	mux.Handle("DELETE /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleDeleteMessage), authService))
 
 	log.Printf("Starting server on %s\n", httpServerAddr)
 	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
