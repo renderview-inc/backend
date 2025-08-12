@@ -14,8 +14,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    volumes:
-      - .pgdata:/var/lib/postgresql/data
     networks:
       - migrations
       - backend
@@ -64,9 +62,6 @@ services:
         - backend
       ports:
         - "9112:8080"
-
-volumes:
-  .pgdata:
 
 networks:
   migrations:

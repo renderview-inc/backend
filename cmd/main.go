@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/renderview-inc/backend/internal/app/application/middleware"
 	"github.com/renderview-inc/backend/internal/app/application/services"
 	"github.com/renderview-inc/backend/internal/app/infrastructure/cache"
 	"github.com/renderview-inc/backend/internal/app/infrastructure/repositories"
@@ -61,8 +62,8 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/user/register", userAccountHandler.HandleRegister)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
-	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.HandleLogout)
-	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.HandleRefresh)
+	mux.Handle("POST /api/v1/auth/logout", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleLogout), authService))
+	mux.Handle("POST /api/v1/auth/refresh", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleRefresh), authService))
 
 	log.Printf("Starting server on %s\n", httpServerAddr)
 	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
