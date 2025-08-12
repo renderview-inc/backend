@@ -27,7 +27,7 @@ func (usr *UserSessionRepository) Create(ctx context.Context, tx pgx.Tx, session
 		usr.builder.Insert("user_sessions").
 			Columns("id", "user_id", "refresh_token_hash", "created_at", "updated_at", "refresh_expires_at", "last_used_at",
 				"revoked", "rotated_from_session_id").
-			Values(session.Id, session.UserID, session.RefreshTokenHash, session.CreatedAt,
+			Values(session.Id, session.UserID, session.RefreshTokenHash, session.CreatedAt, session.UpdatedAt,
 				session.RefreshExpiresAt, session.LastUsedAt, session.Revoked, session.RotatedFromSessionID).
 			ToSql()
 	if err != nil {
@@ -72,7 +72,16 @@ func (usr *UserSessionRepository) ReadById(ctx context.Context, id uuid.UUID) (*
 	}
 
 	var us entities.UserSession
-	err = usr.pool.QueryRow(ctx, sql, args...).Scan(&us)
+	err = usr.pool.QueryRow(ctx, sql, args...).Scan(
+		&us.Id, 
+		&us.UserID, 
+		&us.RefreshTokenHash, 
+		&us.CreatedAt, 
+		&us.UpdatedAt, 
+		&us.RefreshExpiresAt, 
+		&us.LastUsedAt, 
+		&us.Revoked,
+		&us.RotatedFromSessionID)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {

@@ -59,10 +59,10 @@ func main() {
 	authHandler := v1.NewAuthHandler(authService)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/v1/user/register", userAccountHandler.HandleRegister)
-	mux.HandleFunc("/api/v1/auth/login", authHandler.HandleLogin)
-	mux.HandleFunc("/api/v1/auth/logout", authHandler.HandleLogout)
-	mux.HandleFunc("/api/v1/auth/refresh", authHandler.HandleRefresh)
+	mux.HandleFunc("POST /api/v1/user/register", userAccountHandler.HandleRegister)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
+	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.HandleLogout)
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.HandleRefresh)
 
 	log.Printf("Starting server on %s\n", httpServerAddr)
 	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
