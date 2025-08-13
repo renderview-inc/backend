@@ -1,6 +1,8 @@
 package main
 
 import (
+	service "github.com/renderview-inc/backend/internal/app/application/services/logger"
+	"github.com/renderview-inc/backend/internal/app/infrastructure/repositories/logger"
 	"log"
 	"net/http"
 	"os"
@@ -72,7 +74,7 @@ func main() {
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
 	mux.Handle("POST /api/v1/auth/logout", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleLogout), authService))
 	mux.Handle("POST /api/v1/auth/refresh", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleRefresh), authService))
-	
+
 	mux.Handle("POST /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleCreateChat), authService))
 	mux.Handle("GET /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleGetChatInfo), authService))
 	mux.Handle("PUT /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleUpdateChat), authService))
@@ -88,4 +90,18 @@ func main() {
 	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
 		log.Printf("Failed to start server: %v", err)
 	}
+}
+
+func registerLogService() (*service.LogService, error) {
+	repo, err := logger.NewClickHouseRepository(os.Getenv("CLICKHOUSE_DSN"), os.Getenv("CLICKHOUSE_TABLE"))
+	if err != nil {
+		return nil, err
+	}
+
+	loggerService, err := service.NewLogService(repo)
+	if err != nil {
+		return nil, err
+	}
+
+	return loggerService, nil
 }
