@@ -9,16 +9,16 @@ import (
 type Message struct {
 	ID        uuid.UUID
 	UserID    uuid.UUID
-	ChatID    uuid.UUID
+	ChatTag   string
 	Content   string
 	CreatedAt time.Time
 }
 
-func NewMessage(id, userID, chatID uuid.UUID, content string, createdAt time.Time) *Message {
+func NewMessage(id, userID uuid.UUID, chatTag, content string, createdAt time.Time) *Message {
 	return &Message{
 		ID:        id,
 		UserID:    userID,
-		ChatID:    chatID,
+		ChatTag:   chatTag,
 		Content:   content,
 		CreatedAt: createdAt,
 	}

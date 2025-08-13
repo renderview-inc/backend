@@ -14,6 +14,7 @@ import (
 type MessageRepository interface {
     Create(ctx context.Context, msg *entities.Message) error
     ReadByID(ctx context.Context, id uuid.UUID) (*entities.Message, error)
+    GetLastByChatTag(ctx context.Context, chatTag string) (*entities.Message, error)
     Update(ctx context.Context, msg *entities.Message) error
     Delete(ctx context.Context, id uuid.UUID) error
 }
@@ -32,7 +33,7 @@ func (ms *MessageService) Create(ctx context.Context, msg dtos.Message) error {
     msgEntity := entities.NewMessage(
         uuid.New(),
         msg.UserID,
-        msg.ChatID,
+        msg.ChatTag,
         msg.Content,
         time.Now(),
     )
@@ -50,9 +51,28 @@ func (ms *MessageService) GetByID(ctx context.Context, id uuid.UUID) (dtos.Messa
     return dtos.Message{
         ID:      msgEntity.ID,
         UserID:  msgEntity.UserID,
-        ChatID:  msgEntity.ChatID,
+        ChatTag:  msgEntity.ChatTag,
         Content: msgEntity.Content,
     }, nil
+}
+
+func (ms *MessageService) GetLastByChatTag(ctx context.Context, chatTag string) (dtos.Message, error) {
+    msgEntity, err := ms.msgRepo.GetLastByChatTag(ctx, chatTag)
+    if err != nil {
+        return dtos.Message{}, fmt.Errorf("failed to get last message: %w", err)
+    }
+    if msgEntity == nil {
+        return dtos.Message{}, errors.New("no messages found")
+    }
+    
+    msg := dtos.Message{
+        ID:     msgEntity.ID,
+        UserID: msgEntity.UserID,
+        ChatTag: msgEntity.ChatTag,
+        Content: msgEntity.Content,
+    }
+
+    return msg, nil
 }
 
 func (ms *MessageService) Update(ctx context.Context, msg dtos.Message) error {
@@ -63,10 +83,7 @@ func (ms *MessageService) Update(ctx context.Context, msg dtos.Message) error {
     if msgEntity == nil {
         return errors.New("message doesn't exist")
     }
-    msgEntity.UserID = msg.UserID
-    msgEntity.ChatID = msg.ChatID
-    msgEntity.Content = msg.Content
-    msgEntity.CreatedAt = time.Now()
+
     return ms.msgRepo.Update(ctx, msgEntity)
 }
 

@@ -80,6 +80,7 @@ func main() {
 
 	mux.Handle("POST /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleCreateMessage), authService))
 	mux.Handle("GET /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleGetMessage), authService))
+	mux.Handle("GET /api/v1/message/last", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleGetLastMessageByChatTag), authService))
 	mux.Handle("PUT /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleUpdateMessage), authService))
 	mux.Handle("DELETE /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleDeleteMessage), authService))
 

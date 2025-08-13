@@ -56,6 +56,26 @@ func (mh *MessageHandler) HandleGetMessage(w http.ResponseWriter, r *http.Reques
     }
 }
 
+func (mh *MessageHandler) HandleGetLastMessageByChatTag(w http.ResponseWriter, r *http.Request) {
+    chatTag := r.URL.Query().Get("chat_tag")
+    if chatTag == "" {
+        http.Error(w, "chat_tag is required", http.StatusBadRequest)
+        return
+    }
+
+    msg, err := mh.messageService.GetLastByChatTag(r.Context(), chatTag)
+    if err != nil {
+        http.Error(w, "failed to get last message", http.StatusInternalServerError)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(msg); err != nil {
+        http.Error(w, "failed to encode message", http.StatusInternalServerError)
+        return
+    }
+}
+
 func (mh *MessageHandler) HandleUpdateMessage(w http.ResponseWriter, r *http.Request) {
     var msg dtos.Message
     if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {

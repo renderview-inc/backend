@@ -24,8 +24,8 @@ func NewMessageRepository(pool *pgxpool.Pool) *MessageRepository {
 
 func (mr *MessageRepository) Create(ctx context.Context, msg *entities.Message) error {
     sql, args, err := mr.builder.Insert("messages").
-        Columns("id", "user_id", "chat_id", "content", "created_at").
-        Values(msg.ID, msg.UserID, msg.ChatID, msg.Content, msg.CreatedAt).
+        Columns("id", "user_id", "chat_tag", "content", "created_at").
+        Values(msg.ID, msg.UserID, msg.ChatTag, msg.Content, msg.CreatedAt).
         ToSql()
 
     if err != nil {
@@ -37,7 +37,7 @@ func (mr *MessageRepository) Create(ctx context.Context, msg *entities.Message) 
 }
 
 func (mr *MessageRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entities.Message, error) {
-    sql, args, err := mr.builder.Select("id", "user_id", "chat_id", "content", "created_at").
+    sql, args, err := mr.builder.Select("id", "user_id", "chat_tag", "content", "created_at").
         From("messages").Where(sq.Eq{"id": id}).ToSql()
 
     if err != nil {
@@ -45,8 +45,33 @@ func (mr *MessageRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entit
     }
 
     var msg entities.Message
-    err = mr.pool.QueryRow(ctx, sql, args...).Scan(&msg.ID, &msg.UserID, &msg.ChatID, &msg.Content, &msg.CreatedAt)
+    err = mr.pool.QueryRow(ctx, sql, args...).Scan(&msg.ID, &msg.UserID, &msg.ChatTag, &msg.Content, &msg.CreatedAt)
 
+    if err != nil {
+        if err == pgx.ErrNoRows {
+            return nil, nil
+        }
+        return nil, err
+    }
+
+    return &msg, nil
+}
+
+func (mr *MessageRepository) GetLastByChatTag(ctx context.Context, chatTag string) (*entities.Message, error) {
+    sql, args, err := mr.builder.
+        Select("id", "user_id", "chat_tag", "content", "created_at").
+        From("messages").
+        Where(sq.Eq{"chat_tag": chatTag}).
+        OrderBy("created_at DESC").
+        Limit(1).
+        ToSql()
+
+    if err != nil {
+        return nil, err
+    }
+
+    var msg entities.Message
+    err = mr.pool.QueryRow(ctx, sql, args...).Scan(&msg.ID, &msg.UserID, &msg.ChatTag, &msg.Content, &msg.CreatedAt)
     if err != nil {
         if err == pgx.ErrNoRows {
             return nil, nil
@@ -60,7 +85,7 @@ func (mr *MessageRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entit
 func (mr *MessageRepository) Update(ctx context.Context, msg *entities.Message) error {
     sql, args, err := mr.builder.Update("messages").
         Set("user_id", msg.UserID).
-        Set("chat_id", msg.ChatID).
+        Set("chat_tag", msg.ChatTag).
         Set("content", msg.Content).
         Set("created_at", msg.CreatedAt).
         Where(sq.Eq{"id": msg.ID}).
