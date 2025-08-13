@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/google/uuid"
 	"github.com/renderview-inc/backend/internal/app/application/dtos"
 	"github.com/renderview-inc/backend/internal/app/application/services"
 )
@@ -35,15 +34,9 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ch *ChatHandler) HandleGetChatInfo(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	tag := r.URL.Query().Get("tag")
 
-	parsedUUID, err := uuid.Parse(id)
-	if err != nil {
-		http.Error(w, "invalid ID; must be UUID", http.StatusBadRequest)
-		return
-	}
-
-	chat, err := ch.chatService.GetByID(r.Context(), parsedUUID)
+	chat, err := ch.chatService.GetByTag(r.Context(), tag)
 	if err != nil {
 		http.Error(w, "failed to retreive chat info", http.StatusInternalServerError)
 		return
@@ -73,15 +66,9 @@ func (ch *ChatHandler) HandleUpdateChat(w http.ResponseWriter, r *http.Request) 
 }
 
 func (ch *ChatHandler) HandleDeleteChat(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Query().Get("id")
+	tag := r.URL.Query().Get("tag")
 
-	parsedUUID, err := uuid.Parse(id)
-	if err != nil {
-		http.Error(w, "invalid ID; must be UUID", http.StatusBadRequest)
-		return
-	}
-
-	if err := ch.chatService.Delete(r.Context(), parsedUUID); err != nil {
+	if err := ch.chatService.Delete(r.Context(), tag); err != nil {
 		http.Error(w, "failed to delete chat", http.StatusInternalServerError)
 		return
 	}

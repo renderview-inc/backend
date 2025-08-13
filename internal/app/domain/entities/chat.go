@@ -7,15 +7,15 @@ import (
 )
 
 type Chat struct {
-	Id uuid.UUID
+	Tag string
 	OwnerId uuid.UUID
 	CreatedAt time.Time
 	Title string
 }
 
-func NewChat(id, ownerId uuid.UUID, createdAt time.Time, title string) Chat {
+func NewChat(tag string, ownerId uuid.UUID, createdAt time.Time, title string) Chat {
 	return Chat{
-		Id: id,
+		Tag: tag,
 		OwnerId: ownerId,
 		CreatedAt: createdAt,
 		Title: title,
