@@ -5,34 +5,33 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 )
 
+const (
+	TimestampKey     = "timestamp"
+	LevelKey         = "level"
+	MsgKey           = "msg"
+	FieldsKey        = "fields"
+	CorrelationIDKey = "correlation_id"
+)
+
 type ClickHouseRepository struct {
 	conn  clickhouse.Conn
 	table string
 }
 
-func NewClickHouseRepository(dsn, table string) (*ClickHouseRepository, error) {
-	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{
-			dsn,
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
+func NewClickHouseRepository(conn clickhouse.Conn, table string) *ClickHouseRepository {
 	return &ClickHouseRepository{
 		conn:  conn,
 		table: table,
-	}, nil
+	}
 }
 
 func (c *ClickHouseRepository) Save(ctx context.Context, log map[string]any) error {
-	return c.conn.Exec(
-		ctx,
-		"INSERT INTO "+c.table+" (timestamp, level, msg, fields) VALUES (?, ?, ?, ?)",
-		log["timestamp"],
-		log["level"],
-		log["msg"],
-		log["fields"],
+	query := "INSERT INTO " + c.table + " (timestamp, level, msg, fields, correlation_id) VALUES (?, ?, ?, ?, ?)"
+	return c.conn.Exec(ctx, query,
+		log[TimestampKey],
+		log[LevelKey],
+		log[MsgKey],
+		log[FieldsKey],
+		log[CorrelationIDKey],
 	)
 }
