@@ -1,4 +1,0 @@
-logger:
-  level: "debug"
-  clickhouse:
-    table: "${CLICKHOUSE_TABLE}"

@@ -38,7 +38,7 @@ func (ch *ChatHandler) HandleGetChatInfo(w http.ResponseWriter, r *http.Request)
 
 	chat, err := ch.chatService.GetByTag(r.Context(), tag)
 	if err != nil {
-		http.Error(w, "failed to retrieve chat info", http.StatusInternalServerError)
+		http.Error(w, "failed to retreive chat info", http.StatusInternalServerError)
 		return
 	}
 
