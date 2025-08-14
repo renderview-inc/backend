@@ -50,13 +50,13 @@ func (cr *ChatService) Create(ctx context.Context, chat dtos.Chat) error {
 func (cr *ChatService) GetByTag(ctx context.Context, tag string) (dtos.Chat, error) {
 	foundChat, err := cr.chatRepo.ReadByTag(ctx, tag)
 	if err != nil {
-		return dtos.Chat{}, fmt.Errorf("failed to retreive chat information: %w", err)
+		return dtos.Chat{}, fmt.Errorf("failed to retrieve chat information: %w", err)
 	}
 
 	chat := dtos.Chat{
-		Tag: foundChat.Tag,
+		Tag:     foundChat.Tag,
 		OwnerId: foundChat.OwnerId,
-		Title: foundChat.Title,
+		Title:   foundChat.Title,
 	}
 
 	return chat, nil

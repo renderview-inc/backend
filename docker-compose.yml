@@ -56,12 +56,62 @@ services:
       env_file:
         - ./.env
       depends_on:
-        postgres-db:
-          condition: service_healthy
+        liquibase-migrate:
+          condition: service_completed_successfully
+        goose-migrate-clickhouse:
+          condition: service_completed_successfully
+      environment:
+        CLICKHOUSE_HOST: clickhouse
+        CLICKHOUSE_PORT: 9000
       networks:
         - backend
       ports:
         - "9112:8080"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.5
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD", "clickhouse-client", "--host=localhost", "--query=SELECT 1" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  goose-migrate-clickhouse:
+    container_name: migrate-clickhouse
+    build:
+      context: ./migrations/goose
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 9000
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      MIGRATION_CLICKHOUSE_VERSION: ${MIGRATION_CLICKHOUSE_VERSION:-latest}
+    volumes:
+      - ./migrations/goose/sql:/migrations/goose/sql
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  clickhouse_data:
 
 networks:
   migrations:
