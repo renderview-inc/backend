@@ -1,11 +1,12 @@
 package config
 
+type ClickHouseConfig struct {
+	Table string `mapstructure:"table"`
+}
+
 type LogConfig struct {
 	Logger struct {
-		Level      string `mapstructure:"level"`
-		ClickHouse struct {
-			DSN   string `mapstructure:"dsn"`
-			Table string `mapstructure:"table"`
-		} `mapstructure:"clickhouse"`
+		Level      string           `mapstructure:"level"`
+		ClickHouse ClickHouseConfig `mapstructure:"clickhouse"`
 	} `mapstructure:"logger"`
 }
