@@ -1,0 +1,33 @@
+package config
+
+import (
+	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
+	"os"
+	"strings"
+)
+
+func LoadLogConfig() (*LogConfig, error) {
+	_ = godotenv.Load()
+
+	v := viper.New()
+	v.SetConfigName("log-config")
+	v.SetConfigType("yaml")
+	v.AddConfigPath(".")
+	v.AddConfigPath("./configs")
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if err := v.ReadInConfig(); err != nil {
+		return nil, err
+	}
+
+	var cfg LogConfig
+	if err := v.Unmarshal(&cfg); err != nil {
+		return nil, err
+	}
+
+	cfg.Logger.ClickHouse.Table = os.ExpandEnv(cfg.Logger.ClickHouse.Table)
+
+	return &cfg, nil
+}
