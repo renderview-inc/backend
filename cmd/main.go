@@ -1,8 +1,14 @@
 package main
 
 import (
-	service "github.com/renderview-inc/backend/internal/app/application/services/logger"
+	"context"
+	"github.com/ClickHouse/clickhouse-go/v2"
+	"github.com/gorilla/mux"
+	"github.com/jackc/pgx/v5/pgxpool"
+	logSystem "github.com/renderview-inc/backend/internal/app/application/services/logger"
+	"github.com/renderview-inc/backend/internal/app/application/services/logger/option"
 	"github.com/renderview-inc/backend/internal/app/infrastructure/repositories/logger"
+	"github.com/renderview-inc/backend/pkg/config"
 	"log"
 	"net/http"
 	"os"
@@ -18,23 +24,24 @@ import (
 )
 
 func main() {
-	dbURL := "postgres://" + os.Getenv("POSTGRES_USER") + ":" +
-		os.Getenv("POSTGRES_PASSWORD") + "@" +
-		os.Getenv("DB_HOST") + ":" +
-		os.Getenv("DB_PORT") + "/" +
-		os.Getenv("POSTGRES_DB") + "?sslmode=disable"
+	ctx := context.Background()
 
-	redisAddr := os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT")
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	httpServerAddr := os.Getenv("HTTP_ADDR")
-
-	dbPool, err := postgres.NewPsqlPool(dbURL)
+	logService, err := registerLogService()
 	if err != nil {
-		log.Printf("Unable to connect to database: %v\n", err)
+		log.Fatalf("Failed to initialize log service: %v", err)
+	}
+
+	dbPool, err := connectPostgres()
+	if err != nil {
+		logService.Error(ctx, "unable to connect to database", option.Error(err))
 
 		return
 	}
 	defer dbPool.Close()
+
+	redisAddr := os.Getenv("REDIS_HOST") + ":" + os.Getenv("REDIS_PORT")
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	httpServerAddr := os.Getenv("HTTP_ADDR")
 
 	userAccountRepo := repositories.NewUserAccountRepository(dbPool)
 	userSessionRepo := repositories.NewUserSessionRepository(dbPool)
@@ -67,38 +74,75 @@ func main() {
 	chatHandler := v1.NewChatHandler(chatService)
 	messageHandler := v1.NewMessageHandler(messageService)
 
-	mux := http.NewServeMux()
+	r := mux.NewRouter()
+	r.Use(middleware.CorrelationMiddleware)
+	r.Use(func(next http.Handler) http.Handler {
+		return middleware.LoggingMiddleware(next, logService)
+	})
 
-	mux.HandleFunc("POST /api/v1/user/register", userAccountHandler.HandleRegister)
+	public := r.NewRoute().Subrouter()
+	protected := r.NewRoute().Subrouter()
 
-	mux.HandleFunc("POST /api/v1/auth/login", authHandler.HandleLogin)
-	mux.Handle("POST /api/v1/auth/logout", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleLogout), authService))
-	mux.Handle("POST /api/v1/auth/refresh", middleware.AuthMiddleware(http.HandlerFunc(authHandler.HandleRefresh), authService))
+	public.HandleFunc("/api/v1/user/register", userAccountHandler.HandleRegister).Methods(http.MethodPost)
+	public.HandleFunc("/api/v1/auth/login", authHandler.HandleLogin).Methods(http.MethodPost)
 
-	mux.Handle("POST /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleCreateChat), authService))
-	mux.Handle("GET /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleGetChatInfo), authService))
-	mux.Handle("PUT /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleUpdateChat), authService))
-	mux.Handle("DELETE /api/v1/chat", middleware.AuthMiddleware(http.HandlerFunc(chatHandler.HandleDeleteChat), authService))
+	protected.Use(func(next http.Handler) http.Handler {
+		return middleware.AuthMiddleware(next, authService)
+	})
 
-	mux.Handle("POST /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleCreateMessage), authService))
-	mux.Handle("GET /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleGetMessage), authService))
-	mux.Handle("GET /api/v1/message/last", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleGetLastMessageByChatTag), authService))
-	mux.Handle("PUT /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleUpdateMessage), authService))
-	mux.Handle("DELETE /api/v1/message", middleware.AuthMiddleware(http.HandlerFunc(messageHandler.HandleDeleteMessage), authService))
+	protected.HandleFunc("/api/v1/auth/logout", authHandler.HandleLogout).Methods(http.MethodPost)
+	protected.HandleFunc("/api/v1/auth/refresh", authHandler.HandleRefresh).Methods(http.MethodPost)
 
-	log.Printf("Starting server on %s\n", httpServerAddr)
-	if err := http.ListenAndServe(httpServerAddr, mux); err != nil {
-		log.Printf("Failed to start server: %v", err)
+	protected.HandleFunc("/api/v1/chat", chatHandler.HandleCreateChat).Methods(http.MethodPost)
+	protected.HandleFunc("/api/v1/chat", chatHandler.HandleGetChatInfo).Methods(http.MethodGet)
+	protected.HandleFunc("/api/v1/chat", chatHandler.HandleUpdateChat).Methods(http.MethodPut)
+	protected.HandleFunc("/api/v1/chat", chatHandler.HandleDeleteChat).Methods(http.MethodDelete)
+
+	protected.HandleFunc("/api/v1/message", messageHandler.HandleCreateMessage).Methods(http.MethodPost)
+	protected.HandleFunc("/api/v1/message", messageHandler.HandleGetMessage).Methods(http.MethodGet)
+	protected.HandleFunc("/api/v1/message/last", messageHandler.HandleGetLastMessageByChatTag).Methods(http.MethodGet)
+	protected.HandleFunc("/api/v1/message", messageHandler.HandleUpdateMessage).Methods(http.MethodPut)
+	protected.HandleFunc("/api/v1/message", messageHandler.HandleDeleteMessage).Methods(http.MethodDelete)
+
+	logService.Info(ctx, "starting server", option.Any("httpAddr", httpServerAddr))
+	if err = http.ListenAndServe(httpServerAddr, r); err != nil {
+		logService.Fatal(ctx, "failed to start server", option.Error(err))
 	}
 }
 
-func registerLogService() (*service.LogService, error) {
-	repo, err := logger.NewClickHouseRepository(os.Getenv("CLICKHOUSE_DSN"), os.Getenv("CLICKHOUSE_TABLE"))
+func connectPostgres() (*pgxpool.Pool, error) {
+	dbURL := "postgres://" + os.Getenv("POSTGRES_USER") + ":" +
+		os.Getenv("POSTGRES_PASSWORD") + "@" +
+		os.Getenv("DB_HOST") + ":" +
+		os.Getenv("DB_PORT") + "/" +
+		os.Getenv("POSTGRES_DB") + "?sslmode=disable"
+
+	return postgres.NewPsqlPool(dbURL)
+}
+
+func registerLogService() (*logSystem.LogService, error) {
+	cfg, err := config.LoadLogConfig()
 	if err != nil {
 		return nil, err
 	}
 
-	loggerService, err := service.NewLogService(repo)
+	conn, err := clickhouse.Open(&clickhouse.Options{
+		Addr: []string{
+			os.Getenv("CLICKHOUSE_HOST") + ":" + os.Getenv("CLICKHOUSE_PORT"),
+		},
+		Auth: clickhouse.Auth{
+			Database: os.Getenv("CLICKHOUSE_DB"),
+			Username: os.Getenv("CLICKHOUSE_USER"),
+			Password: os.Getenv("CLICKHOUSE_PASSWORD"),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	repo := logger.NewClickHouseRepository(conn, cfg.Logger.ClickHouse.Table)
+
+	loggerService, err := logSystem.NewLogService(cfg, repo)
 	if err != nil {
 		return nil, err
 	}
