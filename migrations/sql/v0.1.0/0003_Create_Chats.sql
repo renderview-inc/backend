@@ -1,6 +1,13 @@
 CREATE TABLE IF NOT EXISTS chats (
-    tag VARCHAR(15) PRIMARY KEY,
+    id UUID PRIMARY KEY,
+    tag VARCHAR(15) NOT NULL UNIQUE,
     owner_id UUID REFERENCES user_accounts(id),
     created_at TIMESTAMPTZ NOT NULL,
     title TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_participants (
+    chat_id NOT NULL REFERENCES chats(id),
+    user_id NOT NULL REFERENCES user_accounts(id),
+    PRIMARY KEY (chat_id, user_id)
 );
