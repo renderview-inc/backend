@@ -97,6 +97,7 @@ func main() {
 	protected.HandleFunc("/api/v1/chat/participant", chatHandler.HandleAddParticipant).Methods(http.MethodPost)
 	protected.HandleFunc("/api/v1/chat/tag", chatHandler.HandleGetChatInfoByTag).Methods(http.MethodGet)
 	protected.HandleFunc("/api/v1/chat/id", chatHandler.HandleGetChatInfoByID).Methods(http.MethodGet)
+	protected.HandleFunc("/api/v1/chat", chatHandler.HandleGetChatsWithLastMessages).Methods(http.MethodGet)
 	protected.HandleFunc("/api/v1/chat", chatHandler.HandleUpdateChat).Methods(http.MethodPut)
 	protected.HandleFunc("/api/v1/chat", chatHandler.HandleDeleteChat).Methods(http.MethodDelete)
 	protected.HandleFunc("/api/v1/chat/participant", chatHandler.HandleRemoveParticipant).Methods(http.MethodDelete)

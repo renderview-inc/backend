@@ -76,6 +76,43 @@ func (cr *ChatRepository) ReadByTag(ctx context.Context, tag string) (*entities.
 	return &chat, nil
 }
 
+func (cr *ChatRepository) GetChatsWithLastMessages(ctx context.Context) ([]entities.ChatLastMessages, error) {
+	sql, args, err := cr.builder.
+        Select("DISTINCT ON (c.id) c.id AS chat_id, m.id AS message_id, m.user_id, m.content, EXTRACT(EPOCH FROM m.created_at)::BIGINT AS timestamp").
+        From("chats c").
+        LeftJoin("messages m ON m.chat_tag = c.tag").
+        OrderBy("c.id", "m.created_at DESC").
+        ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := cr.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []entities.ChatLastMessages
+	for rows.Next() {
+		var msg entities.ChatLastMessages
+		err := rows.Scan(
+			&msg.ChatID,
+			&msg.ID,
+			&msg.UserID,
+			&msg.Message,
+			&msg.Timestamp,
+		)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, msg)
+	}
+	return result, nil
+}
+
+
 func (cr *ChatRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entities.Chat, error) {
 	sql, args, err := cr.builder.Select("tag", "owner_id", "created_at", "title").
 		From("chats").Where(sq.Eq{"id": id}).ToSql()

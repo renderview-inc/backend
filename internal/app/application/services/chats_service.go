@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/renderview-inc/backend/internal/app/application/dtos"
@@ -15,6 +16,7 @@ type ChatRepository interface {
 	AddParticipant(ctx context.Context, chatID, userID uuid.UUID) error
 	ReadByTag(ctx context.Context, tag string) (*entities.Chat, error)
 	ReadByID(ctx context.Context, id uuid.UUID) (*entities.Chat, error)
+	GetChatsWithLastMessages(ctx context.Context) ([]entities.ChatLastMessages, error)
 	Update(ctx context.Context, chat entities.Chat) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	RemoveParticipant(ctx context.Context, chatID, userID uuid.UUID) error
@@ -47,8 +49,7 @@ func (cr *ChatService) Create(ctx context.Context, chat dtos.ChatRequest) (dtos.
         chat.Title,
     )
 
-    err = cr.chatRepo.Create(ctx, chatFinal)
-    if err != nil {
+    if err := cr.chatRepo.Create(ctx, chatFinal); err != nil {
         return dtos.ChatResponse{}, fmt.Errorf("failed to create the chat: %w", err)
     }
 
@@ -99,6 +100,28 @@ func (cr *ChatService) GetByID(ctx context.Context, id uuid.UUID) (dtos.ChatRequ
 	}
 
 	return chat, nil
+}
+
+func (cr *ChatService) GetChatsWithLastMessages(ctx context.Context) ([]dtos.ChatLastMessages, error) {
+    entitiesMsgs, err := cr.chatRepo.GetChatsWithLastMessages(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("failed to get chats with last messages: %w", err)
+    }
+
+    result := make([]dtos.ChatLastMessages, 0, len(entitiesMsgs))
+    for _, m := range entitiesMsgs {
+		hhmm := time.UnixMilli(m.Timestamp).Format("15:04")
+		
+        result = append(result, dtos.ChatLastMessages{
+            ChatID:    m.ChatID,
+            ID:        m.ID,
+            UserID:    m.UserID,
+            Message:   m.Message,
+            Timestamp: hhmm,
+        })
+    }
+	
+    return result, nil
 }
 
 func (cr *ChatService) Update(ctx context.Context, chat dtos.ChatRequest) error {

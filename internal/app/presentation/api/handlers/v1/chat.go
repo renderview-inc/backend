@@ -95,6 +95,24 @@ func (ch *ChatHandler) HandleGetChatInfoByID(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (ch *ChatHandler) HandleGetChatsWithLastMessages(w http.ResponseWriter, r *http.Request) {
+    result, err := ch.chatService.GetChatsWithLastMessages(r.Context())
+    if err != nil {
+        http.Error(w, "failed to get chats with last messages", http.StatusInternalServerError)
+        return
+    }
+
+	info := dtos.ChatLastMessagesResponse{
+		Info: result,
+	}
+
+    w.Header().Set("Content-Type", "application/json")
+    if err := json.NewEncoder(w).Encode(info); err != nil {
+        http.Error(w, "failed to encode response", http.StatusInternalServerError)
+        return
+    }
+}
+
 func (ch *ChatHandler) HandleUpdateChat(w http.ResponseWriter, r *http.Request) {
 	var chat dtos.ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&chat); err != nil {
