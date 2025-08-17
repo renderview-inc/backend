@@ -23,15 +23,18 @@ func NewMessageRepository(pool *pgxpool.Pool) *MessageRepository {
 }
 
 func (mr *MessageRepository) Create(ctx context.Context, msg *entities.Message) error {
-	builder := mr.builder.Insert("messages").
-		Columns("id", "user_id", "chat_tag", "content", "created_at").
-		Values(msg.ID, msg.UserID, msg.ChatTag, msg.Content, msg.CreatedAt)
+	columns := []string{"id", "user_id", "chat_tag", "content", "created_at"}
+	values := []any{msg.ID, msg.UserID, msg.ChatTag, msg.Content, msg.CreatedAt}
 
 	if msg.ReplyToID != uuid.Nil {
-		builder.Columns("reply_to").Values(msg.ReplyToID)
+		columns = append(columns, "reply_to")
+		values = append(values, msg.ReplyToID)
 	}
 
-	sql, args, err := builder.ToSql()
+	sql, args, err := mr.builder.Insert("messages").
+		Columns(columns...).
+		Values(values...).
+		ToSql()
 
 	if err != nil {
 		return err

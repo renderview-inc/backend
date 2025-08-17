@@ -6,7 +6,8 @@ import (
 	"strings"
 )
 
-func LoadLogConfig() (*LogConfig, error) {v := viper.New()
+func LoadLogConfig() (*LogConfig, error) {
+	v := viper.New()
 	v.SetConfigName("log-config")
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
