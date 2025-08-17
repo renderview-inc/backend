@@ -23,10 +23,15 @@ func NewMessageRepository(pool *pgxpool.Pool) *MessageRepository {
 }
 
 func (mr *MessageRepository) Create(ctx context.Context, msg *entities.Message) error {
-    sql, args, err := mr.builder.Insert("messages").
+    builder := mr.builder.Insert("messages").
         Columns("id", "user_id", "chat_tag", "content", "created_at").
-        Values(msg.ID, msg.UserID, msg.ChatTag, msg.Content, msg.CreatedAt).
-        ToSql()
+        Values(msg.ID, msg.UserID, msg.ChatTag, msg.Content, msg.CreatedAt)
+    
+    if msg.ReplyToID != uuid.Nil {
+        builder.Columns("reply_to").Values(msg.ReplyToID)
+    }
+    
+    sql, args, err := builder.ToSql()
 
     if err != nil {
         return err
@@ -37,7 +42,7 @@ func (mr *MessageRepository) Create(ctx context.Context, msg *entities.Message) 
 }
 
 func (mr *MessageRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entities.Message, error) {
-    sql, args, err := mr.builder.Select("id", "user_id", "chat_tag", "content", "created_at").
+    sql, args, err := mr.builder.Select("id", "reply_to", "user_id", "chat_tag", "content", "created_at").
         From("messages").Where(sq.Eq{"id": id}).ToSql()
 
     if err != nil {
@@ -59,7 +64,7 @@ func (mr *MessageRepository) ReadByID(ctx context.Context, id uuid.UUID) (*entit
 
 func (mr *MessageRepository) GetLastByChatTag(ctx context.Context, chatTag string) (*entities.Message, error) {
     sql, args, err := mr.builder.
-        Select("id", "user_id", "chat_tag", "content", "created_at").
+        Select("id", "reply_to", "user_id", "chat_tag", "content", "created_at").
         From("messages").
         Where(sq.Eq{"chat_tag": chatTag}).
         OrderBy("created_at DESC").

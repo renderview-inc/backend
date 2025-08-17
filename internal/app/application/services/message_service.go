@@ -32,6 +32,7 @@ func NewMessageService(msgRepo MessageRepository) *MessageService {
 func (ms *MessageService) Create(ctx context.Context, msg dtos.Message) error {
     msgEntity := entities.NewMessage(
         uuid.New(),
+        msg.ReplyToID,
         msg.UserID,
         msg.ChatTag,
         msg.Content,

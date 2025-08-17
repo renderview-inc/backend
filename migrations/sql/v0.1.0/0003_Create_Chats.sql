@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS chats (
 );
 
 CREATE TABLE IF NOT EXISTS chat_participants (
-    chat_id NOT NULL REFERENCES chats(id),
-    user_id NOT NULL REFERENCES user_accounts(id),
+    chat_id UUID NOT NULL REFERENCES chats(id),
+    user_id UUID NOT NULL REFERENCES user_accounts(id),
     PRIMARY KEY (chat_id, user_id)
 );
