@@ -4,17 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/renderview-inc/backend/internal/app/application/dtos"
 	"github.com/renderview-inc/backend/internal/app/domain/entities"
 )
 
 type ChatRepository interface {
 	Create(ctx context.Context, chat entities.Chat) error
-	ReadByTag(ctx context.Context, id string) (*entities.Chat, error)
+	ReadByTag(ctx context.Context, tag string) (*entities.Chat, error)
+	ReadByID(ctx context.Context, id uuid.UUID) (*entities.Chat, error)
 	Update(ctx context.Context, chat entities.Chat) error
-	Delete(ctx context.Context, tag string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 }
 
 type ChatService struct {
@@ -27,33 +28,38 @@ func NewChatService(chatRepo ChatRepository) *ChatService {
 	}
 }
 
-func (cr *ChatService) Create(ctx context.Context, chat dtos.Chat) error {
+func (cr *ChatService) Create(ctx context.Context, chat dtos.ChatRequest) (dtos.ChatResponse, error) {
 	foundChat, err := cr.chatRepo.ReadByTag(ctx, chat.Tag)
 	if err != nil {
-		return fmt.Errorf("failed to check existence of chat: %w", err)
+		return dtos.ChatResponse{}, fmt.Errorf("failed to check existence of chat: %w", err)
 	}
 
 	if foundChat != nil {
-		return errors.New("chat with this already exists")
+		return dtos.ChatResponse{}, errors.New("chat with this already exists")
 	}
 
 	chatFinal := entities.NewChat(
 		chat.Tag,
 		chat.OwnerId,
-		time.Now(),
 		chat.Title,
 	)
 
-	return cr.chatRepo.Create(ctx, chatFinal)
-}
+	err = cr.chatRepo.Create(ctx, chatFinal)
 
-func (cr *ChatService) GetByTag(ctx context.Context, tag string) (dtos.Chat, error) {
-	foundChat, err := cr.chatRepo.ReadByTag(ctx, tag)
 	if err != nil {
-		return dtos.Chat{}, fmt.Errorf("failed to retrieve chat information: %w", err)
+		return dtos.ChatResponse{}, fmt.Errorf("failed to create the chat: %w", err)
 	}
 
-	chat := dtos.Chat{
+	return dtos.ChatResponse{Id: chatFinal.Id.String(), Tag: chatFinal.Tag}, nil
+}
+
+func (cr *ChatService) GetByTag(ctx context.Context, tag string) (dtos.ChatRequest, error) {
+	foundChat, err := cr.chatRepo.ReadByTag(ctx, tag)
+	if err != nil {
+		return dtos.ChatRequest{}, fmt.Errorf("failed to retrieve chat information: %w", err)
+	}
+
+	chat := dtos.ChatRequest{
 		Tag:     foundChat.Tag,
 		OwnerId: foundChat.OwnerId,
 		Title:   foundChat.Title,
@@ -62,7 +68,22 @@ func (cr *ChatService) GetByTag(ctx context.Context, tag string) (dtos.Chat, err
 	return chat, nil
 }
 
-func (cr *ChatService) Update(ctx context.Context, chat dtos.Chat) error {
+func (cr *ChatService) GetByID(ctx context.Context, id uuid.UUID) (dtos.ChatRequest, error) {
+	foundChat, err := cr.chatRepo.ReadByID(ctx, id)
+	if err != nil {
+		return dtos.ChatRequest{}, fmt.Errorf("failed to retrieve chat information: %w", err)
+	}
+
+	chat := dtos.ChatRequest{
+		Tag:     foundChat.Tag,
+		OwnerId: foundChat.OwnerId,
+		Title:   foundChat.Title,
+	}
+
+	return chat, nil
+}
+
+func (cr *ChatService) Update(ctx context.Context, chat dtos.ChatRequest) error {
 	foundChat, err := cr.chatRepo.ReadByTag(ctx, chat.Tag)
 	if err != nil {
 		return fmt.Errorf("failed to check existence of chat: %w", err)
@@ -75,15 +96,14 @@ func (cr *ChatService) Update(ctx context.Context, chat dtos.Chat) error {
 	chatFinal := entities.NewChat(
 		chat.Tag,
 		chat.OwnerId,
-		time.Now(),
 		chat.Title,
 	)
 
 	return cr.chatRepo.Update(ctx, chatFinal)
 }
 
-func (cr *ChatService) Delete(ctx context.Context, tag string) error {
-	foundChat, err := cr.chatRepo.ReadByTag(ctx, tag)
+func (cr *ChatService) Delete(ctx context.Context, id uuid.UUID) error {
+	foundChat, err := cr.chatRepo.ReadByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to check existence of chat: %w", err)
 	}
@@ -92,5 +112,5 @@ func (cr *ChatService) Delete(ctx context.Context, tag string) error {
 		return errors.New("chat doesn't exist")
 	}
 
-	return cr.chatRepo.Delete(ctx, tag)
+	return cr.chatRepo.Delete(ctx, id)
 }
