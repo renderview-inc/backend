@@ -7,7 +7,6 @@ require (
 	github.com/go-playground/validator/v10 v10.27.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
-	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.12.1
 	github.com/spf13/viper v1.20.1
 	go.uber.org/zap v1.27.0

@@ -73,13 +73,13 @@ func (usr *UserSessionRepository) ReadById(ctx context.Context, id uuid.UUID) (*
 
 	var us entities.UserSession
 	err = usr.pool.QueryRow(ctx, sql, args...).Scan(
-		&us.Id, 
-		&us.UserID, 
-		&us.RefreshTokenHash, 
-		&us.CreatedAt, 
-		&us.UpdatedAt, 
-		&us.RefreshExpiresAt, 
-		&us.LastUsedAt, 
+		&us.Id,
+		&us.UserID,
+		&us.RefreshTokenHash,
+		&us.CreatedAt,
+		&us.UpdatedAt,
+		&us.RefreshExpiresAt,
+		&us.LastUsedAt,
 		&us.Revoked,
 		&us.RotatedFromSessionID)
 

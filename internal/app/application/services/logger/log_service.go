@@ -64,7 +64,10 @@ func (l *LogService) log(ctx context.Context, level zapcore.Level, msg string, o
 		opt(additional)
 	}
 
-	correlationID, _ := ctx.Value(CorrelationID).(string)
+	correlationID, ok := ctx.Value(CorrelationID).(string)
+	if !ok {
+		return
+	}
 
 	fields := make([]zap.Field, 0, len(additional)+1)
 	for k, v := range additional {

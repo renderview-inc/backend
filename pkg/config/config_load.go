@@ -1,16 +1,12 @@
 package config
 
 import (
-	"github.com/joho/godotenv"
 	"github.com/spf13/viper"
 	"os"
 	"strings"
 )
 
-func LoadLogConfig() (*LogConfig, error) {
-	_ = godotenv.Load()
-
-	v := viper.New()
+func LoadLogConfig() (*LogConfig, error) {v := viper.New()
 	v.SetConfigName("log-config")
 	v.SetConfigType("yaml")
 	v.AddConfigPath(".")
