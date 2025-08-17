@@ -40,6 +40,21 @@ func (ch *ChatHandler) HandleCreateChat(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+func (ch *ChatHandler) HandleAddParticipant(w http.ResponseWriter, r *http.Request) {
+    var participation dtos.ChatParticipation
+    if err := json.NewDecoder(r.Body).Decode(&participation); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if err := ch.chatService.AddParticipant(r.Context(), participation); err != nil {
+        http.Error(w, "failed to add participant", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
+}
+
 func (ch *ChatHandler) HandleGetChatInfoByTag(w http.ResponseWriter, r *http.Request) {
 	tag := r.URL.Query().Get("tag")
 
@@ -110,4 +125,19 @@ func (ch *ChatHandler) HandleDeleteChat(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (ch *ChatHandler) HandleRemoveParticipant(w http.ResponseWriter, r *http.Request) {
+    var participation dtos.ChatParticipation
+    if err := json.NewDecoder(r.Body).Decode(&participation); err != nil {
+        http.Error(w, "Invalid request body", http.StatusBadRequest)
+        return
+    }
+
+    if err := ch.chatService.RemoveParticipant(r.Context(), participation); err != nil {
+        http.Error(w, "failed to remove participant", http.StatusInternalServerError)
+        return
+    }
+
+    w.WriteHeader(http.StatusOK)
 }

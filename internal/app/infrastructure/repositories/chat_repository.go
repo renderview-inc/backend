@@ -39,6 +39,20 @@ func (cr *ChatRepository) Create(ctx context.Context, chat entities.Chat) error 
 	return err
 }
 
+func (cr *ChatRepository) AddParticipant(ctx context.Context, chatID, userID uuid.UUID) error {
+    sql, args, err := cr.builder.Insert("chat_participants").
+        Columns("chat_id", "user_id").
+        Values(chatID, userID).
+        ToSql()
+
+    if err != nil {
+        return err
+    }
+
+    _, err = cr.pool.Exec(ctx, sql, args...)
+    return err
+}
+
 func (cr *ChatRepository) ReadByTag(ctx context.Context, tag string) (*entities.Chat, error) {
 	sql, args, err := cr.builder.Select("id", "owner_id", "created_at", "title").
 		From("chats").Where(sq.Eq{"tag": tag}).ToSql()
@@ -120,4 +134,30 @@ func (cr *ChatRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (cr *ChatRepository) RemoveParticipant(ctx context.Context, chatID, userID uuid.UUID) error {
+    sql, args, err := cr.builder.Delete("chat_participants").
+        Where(sq.Eq{"chat_id": chatID, "user_id": userID}).
+        ToSql()
+
+    if err != nil {
+        return err
+    }
+
+    _, err = cr.pool.Exec(ctx, sql, args...)
+    return err
+}
+
+func (cr *ChatRepository) RemoveAllParticipants(ctx context.Context, chatID uuid.UUID) error {
+    sql, args, err := cr.builder.Delete("chat_participants").
+        Where(sq.Eq{"chat_id": chatID}).
+        ToSql()
+
+    if err != nil {
+        return err
+    }
+
+    _, err = cr.pool.Exec(ctx, sql, args...)
+    return err
 }

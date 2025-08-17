@@ -94,10 +94,12 @@ func main() {
 	protected.HandleFunc("/api/v1/auth/refresh", authHandler.HandleRefresh).Methods(http.MethodPost)
 
 	protected.HandleFunc("/api/v1/chat", chatHandler.HandleCreateChat).Methods(http.MethodPost)
+	protected.HandleFunc("/api/v1/chat/participant", chatHandler.HandleAddParticipant).Methods(http.MethodPost)
 	protected.HandleFunc("/api/v1/chat/tag", chatHandler.HandleGetChatInfoByTag).Methods(http.MethodGet)
 	protected.HandleFunc("/api/v1/chat/id", chatHandler.HandleGetChatInfoByID).Methods(http.MethodGet)
 	protected.HandleFunc("/api/v1/chat", chatHandler.HandleUpdateChat).Methods(http.MethodPut)
 	protected.HandleFunc("/api/v1/chat", chatHandler.HandleDeleteChat).Methods(http.MethodDelete)
+	protected.HandleFunc("/api/v1/chat/participant", chatHandler.HandleRemoveParticipant).Methods(http.MethodDelete)
 
 	protected.HandleFunc("/api/v1/message", messageHandler.HandleCreateMessage).Methods(http.MethodPost)
 	protected.HandleFunc("/api/v1/message", messageHandler.HandleGetMessage).Methods(http.MethodGet)
