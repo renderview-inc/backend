@@ -2,7 +2,6 @@ package config
 
 import (
 	"github.com/spf13/viper"
-	"os"
 	"strings"
 )
 
@@ -23,8 +22,6 @@ func LoadLogConfig() (*LogConfig, error) {
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
-
-	cfg.Logger.ClickHouse.Table = os.ExpandEnv(cfg.Logger.ClickHouse.Table)
 
 	return &cfg, nil
 }
