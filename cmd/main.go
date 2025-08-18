@@ -26,9 +26,14 @@ func main() {
 
 	logService, err := registerLogService()
 	if err != nil {
-		log.Fatalf("Failed to initialize log service: %v", err)
+		log.Fatalf("failed to initialize log service: %v", err)
 	}
-	defer logService.Sync()
+	defer func(logService *logSystem.LogService) {
+		err = logService.Sync()
+		if err != nil {
+			log.Fatalf("failed to sync log service: %v", err)
+		}
+	}(logService)
 
 	dbPool, err := connectPostgres()
 	if err != nil {
