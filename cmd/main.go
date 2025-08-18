@@ -2,12 +2,10 @@ package main
 
 import (
 	"context"
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gorilla/mux"
 	"github.com/jackc/pgx/v5/pgxpool"
 	logSystem "github.com/renderview-inc/backend/internal/app/application/services/logger"
 	"github.com/renderview-inc/backend/internal/app/application/services/logger/option"
-	"github.com/renderview-inc/backend/internal/app/infrastructure/repositories/logger"
 	"github.com/renderview-inc/backend/pkg/config"
 	"log"
 	"net/http"
@@ -30,6 +28,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize log service: %v", err)
 	}
+	defer logService.Sync()
 
 	dbPool, err := connectPostgres()
 	if err != nil {
@@ -83,6 +82,7 @@ func main() {
 	public := r.NewRoute().Subrouter()
 	protected := r.NewRoute().Subrouter()
 
+	public.HandleFunc("/api/v1/test", func(w http.ResponseWriter, r *http.Request) {}).Methods("GET")
 	public.HandleFunc("/api/v1/user/register", userAccountHandler.HandleRegister).Methods(http.MethodPost)
 	public.HandleFunc("/api/v1/auth/login", authHandler.HandleLogin).Methods(http.MethodPost)
 
@@ -130,23 +130,7 @@ func registerLogService() (*logSystem.LogService, error) {
 		return nil, err
 	}
 
-	conn, err := clickhouse.Open(&clickhouse.Options{
-		Addr: []string{
-			os.Getenv("CLICKHOUSE_HOST") + ":" + os.Getenv("CLICKHOUSE_PORT"),
-		},
-		Auth: clickhouse.Auth{
-			Database: os.Getenv("CLICKHOUSE_DB"),
-			Username: os.Getenv("CLICKHOUSE_USER"),
-			Password: os.Getenv("CLICKHOUSE_PASSWORD"),
-		},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	repo := logger.NewClickHouseRepository(conn, cfg.Logger.ClickHouse.Table)
-
-	loggerService, err := logSystem.NewLogService(cfg, repo)
+	loggerService, err := logSystem.NewLogService(cfg)
 	if err != nil {
 		return nil, err
 	}
