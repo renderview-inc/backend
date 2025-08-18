@@ -2,14 +2,12 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/renderview-inc/backend/internal/app/application/services/logger/option"
 	"github.com/renderview-inc/backend/internal/app/infrastructure/repositories/logger"
 	"github.com/renderview-inc/backend/pkg/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
-	"time"
 )
 
 type ctxKey string
@@ -18,32 +16,72 @@ const (
 	CorrelationID ctxKey = "correlation_id"
 )
 
+const fileMode = 0644
+
 type LogRepository interface {
 	Save(ctx context.Context, log map[string]any) error
 }
 
 type LogService struct {
 	logger *zap.Logger
-	repo   LogRepository
 	level  zapcore.Level
 }
 
-func (l *LogService) newConsoleLogger() *zap.Logger {
+func (l *LogService) newConsoleCore() zapcore.Core {
 	encoderCfg := zap.NewDevelopmentEncoderConfig()
 	encoderCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	encoderCfg.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
 	encoderCfg.EncodeCaller = zapcore.ShortCallerEncoder
 
-	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderCfg),
-		zapcore.Lock(os.Stdout),
-		l.level,
-	)
+	consoleEncoder := zapcore.NewConsoleEncoder(encoderCfg)
 
-	return zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	consoleLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl >= l.level
+	})
+
+	return zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), consoleLevel)
 }
 
-func NewLogService(cfg *config.LogConfig, repo LogRepository) (*LogService, error) {
+func (l *LogService) newJSONCore() (zapcore.Core, error) {
+	jsonCfg := zap.NewProductionEncoderConfig()
+	jsonCfg.TimeKey = "@timestamp"
+	jsonCfg.LevelKey = "log.level"
+	jsonCfg.MessageKey = "message"
+	jsonCfg.CallerKey = "caller"
+	jsonCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	jsonCfg.EncodeLevel = zapcore.LowercaseLevelEncoder
+	jsonEncoder := zapcore.NewJSONEncoder(jsonCfg)
+
+	file, err := os.OpenFile("/logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileMode)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+		return lvl != zapcore.DebugLevel
+	})
+
+	return zapcore.NewCore(jsonEncoder, zapcore.AddSync(file), jsonLevel), nil
+}
+
+func (l *LogService) newDualLogger() (*zap.Logger, error) {
+	consoleCore := l.newConsoleCore()
+
+	jsonCore, err := l.newJSONCore()
+	if err != nil {
+		return nil, err
+	}
+
+	core := zapcore.NewTee(consoleCore, jsonCore)
+
+	return zap.New(core, zap.AddCaller()), nil
+}
+
+func (l *LogService) Sync() error {
+	return l.logger.Sync()
+}
+
+func NewLogService(cfg *config.LogConfig) (*LogService, error) {
 	var logService LogService
 
 	logService.level = zapcore.InfoLevel
@@ -52,8 +90,10 @@ func NewLogService(cfg *config.LogConfig, repo LogRepository) (*LogService, erro
 		return nil, err
 	}
 
-	logService.repo = repo
-	logService.logger = logService.newConsoleLogger()
+	logService.logger, err = logService.newDualLogger()
+	if err != nil {
+		return nil, err
+	}
 
 	return &logService, nil
 }
@@ -64,10 +104,7 @@ func (l *LogService) log(ctx context.Context, level zapcore.Level, msg string, o
 		opt(additional)
 	}
 
-	correlationID, ok := ctx.Value(CorrelationID).(string)
-	if !ok {
-		return
-	}
+	correlationID, _ := ctx.Value(CorrelationID).(string)
 
 	fields := make([]zap.Field, 0, len(additional)+1)
 	for k, v := range additional {
@@ -78,28 +115,6 @@ func (l *LogService) log(ctx context.Context, level zapcore.Level, msg string, o
 	}
 
 	l.logger.Log(level, msg, fields...)
-
-	if level == zapcore.DebugLevel {
-		return
-	}
-
-	jsonFields, err := json.Marshal(additional)
-	if err != nil {
-		l.logger.Error("failed to marshal fields", zap.Error(err))
-		jsonFields = []byte("{}")
-	}
-
-	log := map[string]any{
-		logger.TimestampKey:     time.Now(),
-		logger.LevelKey:         level.String(),
-		logger.MsgKey:           msg,
-		logger.FieldsKey:        string(jsonFields),
-		logger.CorrelationIDKey: correlationID,
-	}
-
-	if err = l.repo.Save(ctx, log); err != nil {
-		l.logger.Error(err.Error())
-	}
 }
 
 func (l *LogService) Debug(ctx context.Context, msg string, opts ...option.LogOption) {
