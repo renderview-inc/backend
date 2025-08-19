@@ -87,7 +87,6 @@ func main() {
 	public := r.NewRoute().Subrouter()
 	protected := r.NewRoute().Subrouter()
 
-	public.HandleFunc("/api/v1/test", func(w http.ResponseWriter, r *http.Request) {}).Methods("GET")
 	public.HandleFunc("/api/v1/user/register", userAccountHandler.HandleRegister).Methods(http.MethodPost)
 	public.HandleFunc("/api/v1/auth/login", authHandler.HandleLogin).Methods(http.MethodPost)
 
