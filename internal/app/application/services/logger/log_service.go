@@ -67,12 +67,12 @@ func (l *LogService) newJSONCore() (zapcore.Core, error) {
 func (l *LogService) newDualLogger() (*zap.Logger, error) {
 	consoleCore := l.newConsoleCore()
 
-	jsonCore, err := l.newJSONCore()
-	if err != nil {
-		return nil, err
-	}
+	//jsonCore, err := l.newJSONCore()
+	//if err != nil {
+	//	return nil, err
+	//}
 
-	core := zapcore.NewTee(consoleCore, jsonCore)
+	core := zapcore.NewTee(consoleCore)
 
 	return zap.New(core, zap.AddCaller()), nil
 }
