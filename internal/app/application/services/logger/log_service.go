@@ -16,7 +16,8 @@ const (
 	CorrelationID ctxKey = "correlation_id"
 )
 
-const fileMode = 0644
+// nolint:gocritic
+//const fileMode = 0644
 
 type LogRepository interface {
 	Save(ctx context.Context, log map[string]any) error
@@ -42,31 +43,33 @@ func (l *LogService) newConsoleCore() zapcore.Core {
 	return zapcore.NewCore(consoleEncoder, zapcore.Lock(os.Stdout), consoleLevel)
 }
 
-func (l *LogService) newJSONCore() (zapcore.Core, error) {
-	jsonCfg := zap.NewProductionEncoderConfig()
-	jsonCfg.TimeKey = "@timestamp"
-	jsonCfg.LevelKey = "log.level"
-	jsonCfg.MessageKey = "message"
-	jsonCfg.CallerKey = "caller"
-	jsonCfg.EncodeTime = zapcore.ISO8601TimeEncoder
-	jsonCfg.EncodeLevel = zapcore.LowercaseLevelEncoder
-	jsonEncoder := zapcore.NewJSONEncoder(jsonCfg)
+// nolint:gocritic
+//func (l *LogService) newJSONCore() (zapcore.Core, error) {
+//	jsonCfg := zap.NewProductionEncoderConfig()
+//	jsonCfg.TimeKey = "@timestamp"
+//	jsonCfg.LevelKey = "log.level"
+//	jsonCfg.MessageKey = "message"
+//	jsonCfg.CallerKey = "caller"
+//	jsonCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+//	jsonCfg.EncodeLevel = zapcore.LowercaseLevelEncoder
+//	jsonEncoder := zapcore.NewJSONEncoder(jsonCfg)
+//
+//	file, err := os.OpenFile("/logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileMode)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	jsonLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
+//		return lvl != zapcore.DebugLevel
+//	})
+//
+//	return zapcore.NewCore(jsonEncoder, zapcore.AddSync(file), jsonLevel), nil
+//}
 
-	file, err := os.OpenFile("/logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, fileMode)
-	if err != nil {
-		return nil, err
-	}
-
-	jsonLevel := zap.LevelEnablerFunc(func(lvl zapcore.Level) bool {
-		return lvl != zapcore.DebugLevel
-	})
-
-	return zapcore.NewCore(jsonEncoder, zapcore.AddSync(file), jsonLevel), nil
-}
-
-func (l *LogService) newDualLogger() (*zap.Logger, error) {
+func (l *LogService) newDualLogger() (*zap.Logger, error) { // nolint:unparam
 	consoleCore := l.newConsoleCore()
 
+	// nolint:gocritic
 	//jsonCore, err := l.newJSONCore()
 	//if err != nil {
 	//	return nil, err
