@@ -37,3 +37,6 @@ setup.template.pattern: "app-logs-*"
 output.elasticsearch:
   hosts: ["http://elasticsearch:9200"]
   index: "app-logs-%{+yyyy.MM.dd}"
+
+path.data: /usr/share/filebeat/data
+filebeat.registry.path: /usr/share/filebeat/data/registry
