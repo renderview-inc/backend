@@ -57,7 +57,7 @@ services:
     env_file:
       - ./.env
     volumes:
-      - ./logs:/logs
+      - logs_data:/usr/share/filebeat/logs
     depends_on:
       liquibase-migrate:
         condition: service_completed_successfully
@@ -97,7 +97,8 @@ services:
     image: docker.elastic.co/beats/filebeat:8.5.1
     user: root
     volumes:
-      - ./logs:/usr/share/filebeat/logs:ro
+      - logs_data:/usr/share/filebeat/logs:ro
+      - filebeat_data:/usr/share/filebeat/data
       - ./configs/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
     depends_on:
       - elasticsearch
@@ -106,6 +107,8 @@ services:
 
 volumes:
   clickhouse_data:
+  logs_data:
+  filebeat_data:
 
 networks:
   migrations:
