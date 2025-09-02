@@ -1,28 +1,32 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"github.com/renderview-inc/backend/pkg/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
 	"path/filepath"
 )
 
-const (
-	LogsDirName = "/usr/share/filebeat/logs"
-	LogFileName = "app.log"
-)
-
 const fileMode = 0644
 
 type CoreBuilder struct {
 	level zapcore.Level
+	cfg   *config.LogConfig
 }
 
-func NewCoreBuilder(level zapcore.Level) *CoreBuilder {
+func NewCoreBuilder(cfg *config.LogConfig) (*CoreBuilder, error) {
+	level := zapcore.InfoLevel
+	if err := level.Set(cfg.Logger.Level); err != nil {
+		return nil, fmt.Errorf("failed to set log level: %w", err)
+	}
+
 	return &CoreBuilder{
 		level: level,
-	}
+		cfg:   cfg,
+	}, nil
 }
 
 func (c *CoreBuilder) ConsoleCore() zapcore.Core {
@@ -41,6 +45,13 @@ func (c *CoreBuilder) ConsoleCore() zapcore.Core {
 }
 
 func (c *CoreBuilder) JSONCore() (zapcore.Core, error) {
+	if c.cfg.Logger.LogsDir == "" {
+		return nil, errors.New("logs dir path is empty")
+	}
+	if c.cfg.Logger.LogsFile == "" {
+		return nil, errors.New("logs file name is empty")
+	}
+
 	jsonCfg := zap.NewProductionEncoderConfig()
 	jsonCfg.TimeKey = "@timestamp"
 	jsonCfg.LevelKey = "log.level"
@@ -50,11 +61,11 @@ func (c *CoreBuilder) JSONCore() (zapcore.Core, error) {
 	jsonCfg.EncodeLevel = zapcore.LowercaseLevelEncoder
 	jsonEncoder := zapcore.NewJSONEncoder(jsonCfg)
 
-	if err := os.MkdirAll(LogsDirName, os.ModePerm); err != nil {
+	if err := os.MkdirAll(c.cfg.Logger.LogsDir, os.ModePerm); err != nil {
 		return nil, fmt.Errorf("create logs dir err: %w", err)
 	}
 
-	logFile := filepath.Join(LogsDirName, LogFileName)
+	logFile := filepath.Join(c.cfg.Logger.LogsDir, c.cfg.Logger.LogsFile)
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_APPEND|os.O_WRONLY, fileMode)
 	if err != nil {
 		return nil, fmt.Errorf("create log file failed: %w", err)

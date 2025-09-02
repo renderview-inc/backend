@@ -12,7 +12,7 @@ func LoadLogConfig() (*LogConfig, error) {
 	v.AddConfigPath(".")
 	v.AddConfigPath("./configs")
 	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, err

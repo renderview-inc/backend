@@ -29,12 +29,10 @@ func (l *LogService) Sync() error {
 }
 
 func NewLogService(cfg *config.LogConfig) (*LogService, error) {
-	level := zapcore.InfoLevel
-	if err := level.Set(cfg.Logger.Level); err != nil {
+	builder, err := core.NewCoreBuilder(cfg)
+	if err != nil {
 		return nil, err
 	}
-
-	builder := core.NewCoreBuilder(level)
 
 	newLogger, err := builder.DualLogger()
 	if err != nil {
