@@ -1,2 +1,4 @@
 logger:
   level: "debug"
+  logs-dir: "/usr/share/filebeat/logs"
+  logs-file: "app.log"
